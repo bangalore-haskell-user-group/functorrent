@@ -75,7 +75,10 @@ bencInt = do _ <- spaces
 -- Right []
 -- >>> parse bencList "Blist" (BC.pack "l4:spam4:eggse")
 -- Right ["spam","eggs"]
-
+-- >>> parse bencList "Blist" (BC.pack "l4:spami42ee")
+-- Right ["spam",42]
+-- >>> parse bencList "Blist" (BC.pack "l4:spam4:eggsli42eee")
+-- Right ["spam","eggs",[42]]
 bencList :: ParsecBS.Parser [BVal]
 bencList = do _ <- spaces
               between (char 'l') (char 'e') (many bencVal)
