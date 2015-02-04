@@ -2,7 +2,7 @@ module Bencode where
 
 -- import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as BC
-import qualified Data.Map as M
+import qualified Data.Map.Strict as M
 import qualified Text.Parsec.ByteString as ParsecBS
 import Text.ParserCombinators.Parsec
 import Control.Applicative ((<*))
@@ -19,7 +19,8 @@ instance Show BVal where
   show (Bint i) = show i
   show (Bstr s) = "\"" ++ BC.unpack s ++ "\""
   show (Blist xs) = show xs
-  show (Bdict m) = show (M.toList m)
+  show (Bdict m) = show m
+
 -- $setup
 -- >>> import Data.Either
 
@@ -83,10 +84,27 @@ bencList :: ParsecBS.Parser [BVal]
 bencList = do _ <- spaces
               between (char 'l') (char 'e') (many bencVal)
 
+-- | parse dict
+--
+-- >>> parse bencDict "Bdict" (BC.pack "de")
+-- Right (fromList [])
+-- >>> parse bencDict "Bdict" (BC.pack "d3:cow3:moo4:spam4:eggse")
+-- Right (fromList [("cow","moo"),("spam","eggs")])
+-- >>> parse bencDict "Bdict" (BC.pack "d4:spaml1:a1:bee")
+-- Right (fromList [("spam",["a","b"])])
+-- >>> parse bencDict "Bdict" (BC.pack "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee")
+-- Right (fromList [("publisher","bob"),("publisher-webpage","www.example.com"),("publisher.location","home")])
+bencDict :: ParsecBS.Parser (M.Map BVal BVal)
+bencDict = between (char 'd') (char 'e') $ M.fromList <$> (many kvpair)
+  where kvpair = do k <- bencStr
+                    v <- bencVal
+                    return (Bstr k, v)
+
 bencVal :: ParsecBS.Parser BVal
 bencVal = Bstr <$> bencStr <|>
           Bint <$> bencInt <|>
-          Blist <$> bencList
+          Blist <$> bencList <|>
+          Bdict <$> bencDict
 
 decode :: BC.ByteString -> Either ParseError BVal
 decode = parse bencVal "BVal"
