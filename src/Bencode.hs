@@ -5,7 +5,6 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
 import qualified Text.Parsec.ByteString as ParsecBS
 import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Char
 import Control.Applicative ((<*))
 import Data.Functor
 
@@ -35,12 +34,14 @@ bencStr = do _ <- spaces
 
 bencInt :: ParsecBS.Parser Integer
 bencInt = do _ <- spaces
-             ds <- between (char 'i') (char 'e') numbers1
+             ds <- between (char 'i') (char 'e') numbers
              return (read ds)
-               where numbers = do sign <- option ' ' (try (char '-'))
-                                  ds' <- many1 digit
-                                  return (sign : ds')
-                     numbers1 = many1 anyChar
+               where numbers = do d' <- (char '-' <|> digit)
+                                  if d' == '0'
+                                    then unexpected "numbers cannot be left-padded with zeros"
+                                    else
+                                      do ds' <- many1 digit
+                                         return (d' : ds')
 
 bencParser :: ParsecBS.Parser BVal
 bencParser = Bstr <$> bencStr <|>
