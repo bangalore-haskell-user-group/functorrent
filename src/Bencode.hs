@@ -32,16 +32,25 @@ bencStr = do _ <- spaces
              s <- count (read ds) anyChar
              return (BC.pack s)
 
+-- | parse integers
+--
+-- >>> parse bencInt "Bint" (BC.pack "i42e")
+-- Right 42
+-- >>> parse bencInt "Bint" (BC.pack "i1e")
+-- Right 1
+-- >>> parse bencInt "Bint" (BC.pack "i0e")
+-- Right 0
+-- >>> parse bencInt "Bint" (BC.pack "i-1e")
+-- Right (-1)
 bencInt :: ParsecBS.Parser Integer
 bencInt = do _ <- spaces
              ds <- between (char 'i') (char 'e') numbers
              return (read ds)
                where numbers = do d' <- (char '-' <|> digit)
-                                  if d' == '0'
+                                  ds' <- many digit
+                                  if d' == '0' && ds' /= []
                                     then unexpected "numbers cannot be left-padded with zeros"
-                                    else
-                                      do ds' <- many1 digit
-                                         return (d' : ds')
+                                    else return (d' : ds')
 
 bencParser :: ParsecBS.Parser BVal
 bencParser = Bstr <$> bencStr <|>
