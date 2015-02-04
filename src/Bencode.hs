@@ -60,11 +60,10 @@ bencInt = do _ <- spaces
                where numbers = do d' <- (char '-' <|> digit)
                                   ds' <- many digit
                                   parseNumber d' ds'
-                     parseNumber '0' []  = return ['0']
+                     parseNumber '0' []  = return "0"
+                     parseNumber '0' _ = unexpected "numbers cannot be left-padded with zeros"
                      parseNumber '-' []  = unexpected "sign without any digits"
-                     parseNumber '0' ds'' = unexpected "numbers cannot be left-padded with zeros"
-                     parseNumber '-' (d'':ds'') | d'' == '0' = unexpected "numbers cannot be left-padded with zeros"
-                     parseNumber '-' ds'' = return ('-':ds'')
+                     parseNumber '-' (d'':_) | d'' == '0' = unexpected "numbers cannot be left-padded with zeros"
                      parseNumber d'' ds'' = return (d'':ds'')
 
 bencParser :: ParsecBS.Parser BVal
