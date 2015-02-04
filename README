@@ -1,0 +1,13 @@
+`deluge' is a bittorrent client.
+
+building
+--------
+
+I suggest usign cabal sandbox.
+
+Steps:
+
+1. cabal sandbox init
+2. cabal install --only-dependencies
+3. cabal build
+
