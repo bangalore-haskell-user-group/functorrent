@@ -8,8 +8,6 @@ import Text.ParserCombinators.Parsec
 import Control.Applicative ((<*))
 import Data.Functor
 
-
-
 data BVal =
     Bint Integer
   | Bstr BC.ByteString
@@ -17,6 +15,11 @@ data BVal =
   | Bdict (M.Map BVal BVal)
   deriving (Ord, Eq)
 
+instance Show BVal where
+  show (Bint i) = show i
+  show (Bstr s) = "\"" ++ BC.unpack s ++ "\""
+  show (Blist xs) = show xs
+  show (Bdict m) = show (M.toList m)
 -- $setup
 -- >>> import Data.Either
 
@@ -66,9 +69,21 @@ bencInt = do _ <- spaces
                      parseNumber '-' (d'':_) | d'' == '0' = unexpected "numbers cannot be left-padded with zeros"
                      parseNumber d'' ds'' = return (d'':ds'')
 
-bencParser :: ParsecBS.Parser BVal
-bencParser = Bstr <$> bencStr <|>
-             Bint <$> bencInt
+-- | parse lists
+--
+-- >>> parse bencList "Blist" (BC.pack "le")
+-- Right []
+-- >>> parse bencList "Blist" (BC.pack "l4:spam4:eggse")
+-- Right ["spam","eggs"]
+
+bencList :: ParsecBS.Parser [BVal]
+bencList = do _ <- spaces
+              between (char 'l') (char 'e') (many bencVal)
+
+bencVal :: ParsecBS.Parser BVal
+bencVal = Bstr <$> bencStr <|>
+          Bint <$> bencInt <|>
+          Blist <$> bencList
 
 decode :: BC.ByteString -> Either ParseError BVal
-decode = parse bencParser "BVal"
+decode = parse bencVal "BVal"
