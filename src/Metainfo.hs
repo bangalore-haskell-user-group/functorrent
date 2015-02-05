@@ -14,7 +14,7 @@ data Info = Info { pieceLength :: Integer
                  , md5sum :: Maybe String }
           deriving (Eq)
 
-data Metainfo = MetaInfo { info :: Info
+data Metainfo = Metainfo { info :: Info
                          , announce :: String
                          , announceList :: Maybe [[String]]
                          , creationDate :: Maybe UTCTime
@@ -23,19 +23,19 @@ data Metainfo = MetaInfo { info :: Info
                          , encoding :: Maybe String }
               deriving (Eq)
 
-mkMetaInfo :: Benv.BVal -> Maybe MetaInfo
-mkMetaInfo (Bdict m) = let info = mkInfo (m ! (Bstr (BC.pack "info")))
-                           announce = m M.! (Bstr (BC.pack "announce"))
-                           announceList = M.lookup (Bstr (BC.pack "announce list")) m
-                           creationDate = M.lookup (Bstr (BC.pack "creation date")) m
-                           comment = M.lookup (Bstr (BC.pack "comment")) m
-                           createdBy = M.lookup (Bstr (BC.pack "created by")) m
-                           encoding = M.lookup (Bstr (BC.pack "encoding")) m
-                       in Just MetaInfo { info = info
-                                        , announce = announce
-                                        , announceList = announceList
-                                        , creationDate = creationDate
-                                        , comment = comment
-                                        , createdBy = createdBy
-                                        , encoding = encoding }
+mkMetaInfo :: Benc.BVal -> Maybe Metainfo
+mkMetaInfo (Benc.Bdict m) = let info = mkInfo (m M.! (Benc.Bstr (BC.pack "info")))
+                                announce = m M.! (Benc.Bstr (BC.pack "announce"))
+                                announceList = M.lookup (Benc.Bstr (BC.pack "announce list")) m
+                                creationDate = M.lookup (Benc.Bstr (BC.pack "creation date")) m
+                                comment = M.lookup (Benc.Bstr (BC.pack "comment")) m
+                                createdBy = M.lookup (Benc.Bstr (BC.pack "created by")) m
+                                encoding = M.lookup (Benc.Bstr (BC.pack "encoding")) m
+                            in Just Metainfo { info = info
+                                             , announce = announce
+                                             , announceList = announceList
+                                             , creationDate = creationDate
+                                             , comment = comment
+                                             , createdBy = createdBy
+                                             , encoding = encoding }
 mkMetaInfo _ = Nothing
