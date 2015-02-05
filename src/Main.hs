@@ -14,7 +14,8 @@ main = do
   args <- getArgs
   torrentStr <- BC.readFile (head args)
   case (Benc.decode torrentStr) of
-   Right d -> let minfo = MInfo.mkMetaInfo d
-              in MInfo.printInfo minfo
+   Right d -> case (MInfo.mkMetaInfo d) of
+               Nothing -> putStrLn "parse error"
+               Just m -> putStrLn (show m)
    Left e -> printError e
   putStrLn "done"
