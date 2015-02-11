@@ -6,22 +6,22 @@ import qualified Data.Map as M
 import Data.Time.Clock
 
 -- only single file mode supported for the time being.
-data Info = Info { pieceLength :: Integer
-                 , pieces :: BC.ByteString
-                 , private :: Maybe Integer
-                 , name :: String
-                 , lengthInBytes :: Integer
-                 , md5sum :: Maybe String }
-          deriving (Eq, Show)
+data Info = Info { pieceLength :: !Integer
+                 , pieces :: !BC.ByteString
+                 , private :: !(Maybe Integer)
+                 , name :: !String
+                 , lengthInBytes :: !Integer
+                 , md5sum :: !(Maybe String)
+                 } deriving (Eq, Show)
 
-data Metainfo = Metainfo { info :: Info
-                         , announce :: String
-                         , announceList :: Maybe [[String]]
-                         , creationDate :: Maybe String
-                         , comment :: Maybe String
-                         , createdBy :: Maybe String
-                         , encoding :: Maybe String }
-              deriving (Eq, Show)
+data Metainfo = Metainfo { info :: !Info
+                         , announce :: !String
+                         , announceList :: !(Maybe [[String]])
+                         , creationDate :: !(Maybe String)
+                         , comment :: !(Maybe String)
+                         , createdBy :: !(Maybe String)
+                         , encoding :: !(Maybe String)
+                         } deriving (Eq, Show)
 
 mkInfo :: Benc.BVal -> Maybe Info
 mkInfo (Benc.Bdict m) = let (Benc.Bint pieceLength') = m M.! (Benc.Bstr (BC.pack "piece length"))
@@ -35,7 +35,8 @@ mkInfo (Benc.Bdict m) = let (Benc.Bint pieceLength') = m M.! (Benc.Bstr (BC.pack
                                      , private = private'
                                      , name = BC.unpack name'
                                      , lengthInBytes = length'
-                                     , md5sum = md5sum' }
+                                     , md5sum = md5sum'
+                                     }
 mkInfo _ = Nothing
 
 maybeBstrToString :: Maybe Benc.BVal -> Maybe String
