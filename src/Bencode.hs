@@ -121,7 +121,18 @@ decode = parse bencVal "BVal"
 -- "i0e"
 -- >>> encode (Bint 42)
 -- "i42e"
+-- >>> encode (Blist [(Bstr (BC.pack "spam")), (Bstr (BC.pack "eggs"))])
+-- "l4:spam4:eggse"
+-- >>> encode (Blist [])
+-- "le"
+-- >>> encode (Bdict (M.fromList [(Bstr $ BC.pack "spam", Bstr $ BC.pack "eggs")]))
+-- "d4:spam4:eggse"
 encode :: BVal -> String
 encode (Bstr bs) = let s = BC.unpack bs
                    in show (length s) ++ ":" ++ s
 encode (Bint i) = "i" ++ show i ++ "e"
+encode (Blist xs) = "l" ++ encodeList xs ++ "e"
+  where encodeList [] = ""
+        encodeList (x:xs) = encode x ++ encodeList xs
+encode (Bdict d) = "d" ++ encodeDict d ++ "e"
+  where encodeDict m = concat [encode k ++ encode (m M.! k) | k <- M.keys m]
