@@ -62,7 +62,8 @@ mkMetaInfo (Benc.Bdict m) = let (Just info') = mkInfo (m M.! (Benc.Bstr (BC.pack
                                              , creationDate = creationDate'
                                              , comment = maybeBstrToString comment'
                                              , createdBy = maybeBstrToString createdBy'
-                                             , encoding = maybeBstrToString encoding' }
+                                             , encoding = maybeBstrToString encoding'
+                                             }
 mkMetaInfo _ = Nothing
 
 infoHash :: (M.Map Benc.BVal Benc.BVal) -> String
