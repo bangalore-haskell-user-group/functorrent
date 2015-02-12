@@ -108,3 +108,20 @@ bencVal = Bstr <$> bencStr <|>
 
 decode :: BC.ByteString -> Either ParseError BVal
 decode = parse bencVal "BVal"
+
+-- given an input dict or int or string, encode
+-- it into a bencoded bytestring.
+-- | encode bencoded-values
+--
+-- >>> encode (Bstr (BC.pack ""))
+-- "0:"
+-- >>> encode (Bstr (BC.pack "spam"))
+-- "4:spam"
+-- >>> encode (Bint 0)
+-- "i0e"
+-- >>> encode (Bint 42)
+-- "i42e"
+encode :: BVal -> String
+encode (Bstr bs) = let s = BC.unpack bs
+                   in show (length s) ++ ":" ++ s
+encode (Bint i) = "i" ++ show i ++ "e"
