@@ -16,6 +16,9 @@ main = do
   case (Benc.decode torrentStr) of
    Right d -> case (MInfo.mkMetaInfo d) of
                Nothing -> putStrLn "parse error"
-               Just m -> putStrLn (show m)
+               Just m -> do
+                 let (Benc.Bdict d') = d
+                 putStrLn (show m)
+                 putStrLn (MInfo.infoHash d')
    Left e -> printError e
   putStrLn "done"

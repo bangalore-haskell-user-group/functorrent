@@ -3,6 +3,8 @@ module Metainfo where
 import qualified Bencode as Benc
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
+import qualified Crypto.Hash as H
+import qualified Crypto.Hash.SHA1 as SHA1
 import Data.Time.Clock
 
 -- only single file mode supported for the time being.
@@ -63,3 +65,6 @@ mkMetaInfo (Benc.Bdict m) = let (Just info') = mkInfo (m M.! (Benc.Bstr (BC.pack
                                              , encoding = maybeBstrToString encoding' }
 mkMetaInfo _ = Nothing
 
+infoHash :: (M.Map Benc.BVal Benc.BVal) -> String
+infoHash m = let info = m M.! (Benc.Bstr (BC.pack "info"))
+             in show $ SHA1.hash $ BC.pack $ Benc.encode info

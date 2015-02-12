@@ -25,7 +25,8 @@ executable deluge
                        time ==1.4.2,
                        bytestring,
                        doctest,
-                       HTTP >=4000.2.1
+                       HTTP >=4000.2.1,
+                       cryptohash
   hs-source-dirs:      src
   ghc-options:         -Wall -fwarn-incomplete-patterns
   default-language:    Haskell2010
