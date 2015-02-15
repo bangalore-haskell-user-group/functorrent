@@ -65,7 +65,3 @@ mkMetaInfo (Benc.Bdict m) = let (Just info') = mkInfo (m M.! (Benc.Bstr (BC.pack
                                              , encoding = maybeBstrToString encoding'
                                              }
 mkMetaInfo _ = Nothing
-
-infoHash :: (M.Map Benc.BVal Benc.BVal) -> String
-infoHash m = let info = m M.! (Benc.Bstr (BC.pack "info"))
-             in show $ SHA1.hash $ BC.pack $ Benc.encode info

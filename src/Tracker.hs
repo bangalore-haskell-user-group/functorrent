@@ -1,8 +1,12 @@
 module Tracker where
 
--- import qualified Bencode as Benc
 import qualified Data.ByteString.Char8 as BC
+import qualified Data.Map as M
+import qualified Data.List as List
 import qualified Network.HTTP.Base as HB
+import qualified Bencode as Benc
+import qualified Crypto.Hash as H
+import qualified Crypto.Hash.SHA1 as SHA1
 import Data.Char
 -- import Network.HTTP
 
@@ -28,6 +32,25 @@ urlEncode bs = concatMap (encode . BC.unpack) (splitN 2 bs)
                                   ['a'..'z'] ++
                                   ['0'..'9'] ++
                                   ['-', '_', '.', '~']
+
+infoHash :: (M.Map Benc.BVal Benc.BVal) -> BC.ByteString
+infoHash m = let info = m M.! (Benc.Bstr (BC.pack "info"))
+             in SHA1.hash $ BC.pack $ Benc.encode info
+
+peerHash :: String -> BC.ByteString
+peerHash peer_id = SHA1.hash (BC.pack peer_id)
+
+prepareRequest :: Benc.BVal -> String -> String
+prepareRequest (Benc.Bdict d) peer_id = let p = [("info_hash", urlEncode (infoHash d)),
+                                                 ("peer_id", urlEncode (peerHash peer_id)),
+                                                 ("port", "6881"),
+                                                 ("uploaded", "0"),
+                                                 ("downloaded", "0"),
+                                                 ("left", "0"),
+                                                 ("compact", "1"),
+                                                 ("event", "started")]
+                                        in
+                                         List.intercalate "&" [f ++ "=" ++ s | (f,s) <- p]
 
 -- (chr . read . ("0x" ++) . BC.unpack)
 -- connect :: Url -> String -> IO (Benc.BVal)
