@@ -22,15 +22,12 @@ urlEncode bs = concatMap (encode . BC.unpack) (splitN 2 bs)
                                   in
                                    escape c c1 c2
         encode _ = ""
-        escape i c1 c2 | isAsciiUpper i ||
-                         isAsciiLower i ||
-                         isDigit i ||
-                         i == '-' ||
-                         i == '_' ||
-                         i == '.' ||
-                         i == '~'
-                         = [i]
+        escape i c1 c2 | i `elem` nonSpecialChars = [i]
                        | otherwise = "%" ++ [c1] ++ [c2]
+          where nonSpecialChars = ['A'..'Z'] ++
+                                  ['a'..'z'] ++
+                                  ['0'..'9'] ++
+                                  ['-', '_', '.', '~']
 
 -- (chr . read . ("0x" ++) . BC.unpack)
 -- connect :: Url -> String -> IO (Benc.BVal)
