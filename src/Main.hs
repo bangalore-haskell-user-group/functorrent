@@ -23,8 +23,9 @@ main = do
                Nothing -> putStrLn "parse error"
                Just m -> do
                  let (Benc.Bdict d') = d
-                 putStrLn (show m)
---                 putStrLn (T.infoHash d')
-                 putStrLn (T.prepareRequest d genPeerId)
+--                 putStrLn (show m)
+--                 putStrLn (T.urlEncode (T.infoHash d'))
+                 do body <- T.connect (MInfo.announce m) (T.prepareRequest d genPeerId)
+                    putStrLn body
    Left e -> printError e
   putStrLn "done"

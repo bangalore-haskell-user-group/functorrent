@@ -3,10 +3,11 @@ module Tracker where
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
 import qualified Data.List as List
-import qualified Network.HTTP.Base as HB
+import qualified Network.HTTP as HTTP
 import qualified Bencode as Benc
 import qualified Crypto.Hash as H
 import qualified Crypto.Hash.SHA1 as SHA1
+import qualified Data.ByteString.Base16 as B16
 import Data.Char
 -- import Network.HTTP
 
@@ -35,10 +36,10 @@ urlEncode bs = concatMap (encode . BC.unpack) (splitN 2 bs)
 
 infoHash :: (M.Map Benc.BVal Benc.BVal) -> BC.ByteString
 infoHash m = let info = m M.! (Benc.Bstr (BC.pack "info"))
-             in SHA1.hash $ BC.pack $ Benc.encode info
+             in (B16.encode . SHA1.hash . BC.pack . Benc.encode) info
 
 peerHash :: String -> BC.ByteString
-peerHash peer_id = SHA1.hash (BC.pack peer_id)
+peerHash = (B16.encode . SHA1.hash . BC.pack)
 
 prepareRequest :: Benc.BVal -> String -> String
 prepareRequest (Benc.Bdict d) peer_id = let p = [("info_hash", urlEncode (infoHash d)),
@@ -52,9 +53,7 @@ prepareRequest (Benc.Bdict d) peer_id = let p = [("info_hash", urlEncode (infoHa
                                         in
                                          List.intercalate "&" [f ++ "=" ++ s | (f,s) <- p]
 
--- (chr . read . ("0x" ++) . BC.unpack)
--- connect :: Url -> String -> IO (Benc.BVal)
--- connect url infoHash = case (parseUrl url) of
---                         Nothing -> putStrLn "invalid tracker URL"
---                         Just req -> let 
-              
+connect :: Url -> String -> IO (String)
+connect baseurl qstr = let url = baseurl ++ "?" ++ qstr
+                       in HTTP.simpleHTTP (HTTP.getRequest url) >>=
+                          HTTP.getResponseBody
