@@ -24,6 +24,7 @@ executable deluge
                        containers ==0.5.*,
                        time ==1.4.2,
                        bytestring,
+                       base16-bytestring,
                        doctest,
                        HTTP >=4000.2.1,
                        cryptohash
