@@ -23,11 +23,35 @@ From WordNet (r) 3.0 (2006) [wn]:
 building
 --------
 
-I suggest usign cabal sandbox.
+I suggest using cabal sandbox.
 
 Steps:
 
 1. cabal sandbox init
 2. cabal install --only-dependencies
-3. cabal build
+3. cabal build # binaries in ./dist/built/deluge/*
+
+Goals
+-----
+
+- Become more profient with Haskell.
+- Implement something non-trivial with Haskell (crypto, file operations, network
+  operations, concurrency, bit twiddling, DHT).
+- Spec compliance.
+- Easy for newbies like me to read and understand along side the spec.
+
+Status
+------
+
+- decode torrent files (bencoding)
+- talk to the tracker and get the peer list
+
+TODO
+----
+
+- Peer protocol.
+- Get the file download working in the simplest possible way.
+- Concurrency (threads per peer)
+- other advanced features of Bit Torrent (like DHT).
+
 
