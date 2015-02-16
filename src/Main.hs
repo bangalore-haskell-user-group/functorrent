@@ -20,7 +20,7 @@ exit :: IO BC.ByteString
 exit = exitWith ExitSuccess
 
 usage :: IO ()
-usage = putStrLn "usage: deluge torrent-file"
+usage = putStrLn "usage: functorrent torrent-file"
 
 parse :: [String] -> IO (BC.ByteString)
 parse [] = usage >> exit

@@ -1,24 +1,4 @@
-From WordNet (r) 3.0 (2006) [wn]:
-
-  deluge
-      n 1: an overwhelming number or amount; "a flood of requests"; "a
-           torrent of abuse" [syn: {flood}, {inundation}, {deluge},
-           {torrent}]
-      2: a heavy rain [syn: {downpour}, {cloudburst}, {deluge},
-         {waterspout}, {torrent}, {pelter}, {soaker}]
-      3: the rising of a body of water and its overflowing onto
-         normally dry land; "plains fertilized by annual inundations"
-         [syn: {flood}, {inundation}, {deluge}, {alluvion}]
-      v 1: fill quickly beyond capacity; as with a liquid; "the
-           basement was inundated after the storm"; "The images
-           flooded his mind" [syn: {deluge}, {flood}, {inundate},
-           {swamp}]
-      2: charge someone with too many tasks [syn: {overwhelm},
-         {deluge}, {flood out}]
-      3: fill or cover completely, usually with water [syn:
-         {inundate}, {deluge}, {submerge}]
-
-`deluge' is a bittorrent client.
+`functorrent' is a bittorrent client.
 
 building
 --------
@@ -29,7 +9,7 @@ Steps:
 
 1. cabal sandbox init
 2. cabal install --only-dependencies
-3. cabal build # binaries in ./dist/built/deluge/*
+3. cabal build # binaries in ./dist/built/functorrent/*
 
 Goals
 -----
