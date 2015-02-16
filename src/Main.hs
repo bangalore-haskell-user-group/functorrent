@@ -7,6 +7,7 @@ import qualified Bencode as Benc
 import qualified Metainfo as MInfo
 import qualified Tracker as T
 import qualified Text.ParserCombinators.Parsec as Parsec
+import qualified Peer as P
 import Data.Functor
 
 printError :: Parsec.ParseError -> IO ()
@@ -34,7 +35,7 @@ main = do
    Right d -> case (MInfo.mkMetaInfo d) of
                Nothing -> putStrLn "parse error"
                Just m -> do
-                 body <- (Benc.decode . BC.pack) <$> T.connect (MInfo.announce m) (T.prepareRequest d genPeerId)
-                 putStrLn (show body)
+                 body <- BC.pack <$> T.connect (MInfo.announce m) (T.prepareRequest d genPeerId)
+                 putStrLn (show (P.getPeers body))
    Left e -> printError e
   putStrLn "done"
