@@ -39,6 +39,7 @@ Goals
   operations, concurrency, bit twiddling, DHT).
 - Spec compliance.
 - Easy for newbies like me to read and understand along side the spec.
+- doctest and quickcheck tests.
 
 Status
 ------
