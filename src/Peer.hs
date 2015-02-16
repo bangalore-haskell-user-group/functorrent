@@ -6,7 +6,6 @@ import qualified Data.Map as M
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Base16 as B16
 import qualified Data.List as L
-import Control.Applicative ((<$>))
 
 data Peer = Peer { ip :: String
                  , port :: Integer
@@ -30,13 +29,21 @@ getPeerResponse body = case (Benc.decode body) of
                           let (Just (Benc.Bint i)) = M.lookup (Benc.Bstr (BC.pack "lookup")) peerM
                               (Benc.Bstr peersBS) = peerM M.! (Benc.Bstr (BC.pack "peers"))
                               pl = map (\peer -> let (ip', port') = BC.splitAt 4 peer
-                                                 in Peer { ip = toIPNum ip',
-                                                           port =  toPortNum port'
+                                                 in Peer { ip = toIPNum ip'
+                                                         , port =  toPortNum port'
                                                          })
                                    (U.splitN 6 peersBS)
-                          in PeerResponse { interval = Just i, peers = pl }
+                          in PeerResponse { interval = Just i
+                                          , peers = pl
+                                          , complete = Nothing
+                                          , incomplete = Nothing
+                                          }
                           where toPortNum = read . ("0x" ++) . BC.unpack . B16.encode
                                 toIPNum = (L.intercalate ".") .
                                           map (show . toInt . ("0x" ++) . BC.unpack) .
                                           (U.splitN 2) . B16.encode
-                        Left _ -> PeerResponse { peers = [] }
+                        _ -> PeerResponse { interval = Nothing
+                                          , peers = []
+                                          , complete = Nothing
+                                          , incomplete = Nothing
+                                          }
