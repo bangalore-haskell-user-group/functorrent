@@ -14,6 +14,8 @@ data Peer = Peer { ip :: String
                             
 data PeerResp = PeerResponse { interval :: Maybe Integer
                              , peers :: [Peer]
+                             , complete :: Maybe Integer
+                             , incomplete :: Maybe Integer
                              } deriving (Show)
 
 toInt :: String -> Integer
@@ -37,4 +39,4 @@ getPeerResponse body = case (Benc.decode body) of
                                 toIPNum = (L.intercalate ".") .
                                           map (show . toInt . ("0x" ++) . BC.unpack) .
                                           (U.splitN 2) . B16.encode
-                        Left _ -> PeerResponse { interval = Nothing, peers = [] }
+                        Left _ -> PeerResponse { peers = [] }
