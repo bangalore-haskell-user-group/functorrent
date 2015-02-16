@@ -133,6 +133,6 @@ encode (Bstr bs) = let s = BC.unpack bs
 encode (Bint i) = "i" ++ show i ++ "e"
 encode (Blist xs) = "l" ++ encodeList xs ++ "e"
   where encodeList [] = ""
-        encodeList (x:xs) = encode x ++ encodeList xs
+        encodeList (x:xs') = encode x ++ encodeList xs'
 encode (Bdict d) = "d" ++ encodeDict d ++ "e"
   where encodeDict m = concat [encode k ++ encode (m M.! k) | k <- M.keys m]

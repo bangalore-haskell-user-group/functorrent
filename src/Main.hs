@@ -1,6 +1,7 @@
 module Main where
 
 import System.Environment (getArgs)
+import System.Exit
 import qualified Data.ByteString.Char8 as BC
 import qualified Bencode as Benc
 import qualified Metainfo as MInfo
@@ -14,10 +15,21 @@ printError e = putStrLn $ "parse error: " ++ show e
 genPeerId :: String
 genPeerId = "-HS0001-20150215"
 
+exit :: IO BC.ByteString
+exit = exitWith ExitSuccess
+
+usage :: IO ()
+usage = putStrLn "usage: deluge torrent-file"
+
+parse :: [String] -> IO (BC.ByteString)
+parse [] = usage >> exit
+parse [a] = BC.readFile a
+parse _ = exit
+
 main :: IO ()
 main = do
   args <- getArgs
-  torrentStr <- BC.readFile (head args)
+  torrentStr <- parse args
   case (Benc.decode torrentStr) of
    Right d -> case (MInfo.mkMetaInfo d) of
                Nothing -> putStrLn "parse error"

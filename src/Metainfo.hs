@@ -3,9 +3,6 @@ module Metainfo where
 import qualified Bencode as Benc
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
-import qualified Crypto.Hash as H
-import qualified Crypto.Hash.SHA1 as SHA1
-import Data.Time.Clock
 
 -- only single file mode supported for the time being.
 data Info = Info { pieceLength :: !Integer
