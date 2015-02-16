@@ -5,24 +5,21 @@ import qualified Data.Map as M
 import qualified Data.List as List
 import qualified Network.HTTP as HTTP
 import qualified Bencode as Benc
-import qualified Crypto.Hash as H
 import qualified Crypto.Hash.SHA1 as SHA1
 import qualified Data.ByteString.Base16 as B16
+import qualified Utils as U
 import Data.Char
 -- import Network.HTTP
 
 type Url = String
 
-splitN :: Int -> BC.ByteString -> [BC.ByteString]
-splitN n bs | BC.null bs = []
-            | otherwise = (BC.take n bs) : splitN n (BC.drop n bs)
 
 -- | urlEncode
 --
 -- >>> urlEncode $ BC.pack "123456789abcdef123456789abcdef123456789a"
 -- "%124Vx%9a%bc%de%f1%23Eg%89%ab%cd%ef%124Vx%9a"
 urlEncode :: BC.ByteString -> String
-urlEncode bs = concatMap (encode . BC.unpack) (splitN 2 bs)
+urlEncode bs = concatMap (encode . BC.unpack) (U.splitN 2 bs)
   where encode b@(c1 : c2 : []) = let c =  chr (read ("0x" ++ b))
                                   in
                                    escape c c1 c2
