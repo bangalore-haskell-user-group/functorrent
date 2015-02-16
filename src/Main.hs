@@ -36,6 +36,6 @@ main = do
                Nothing -> putStrLn "parse error"
                Just m -> do
                  body <- BC.pack <$> T.connect (MInfo.announce m) (T.prepareRequest d genPeerId)
-                 putStrLn (show (P.getPeers body))
+                 putStrLn (show (P.getPeers (P.getPeerResponse body)))
    Left e -> printError e
   putStrLn "done"
