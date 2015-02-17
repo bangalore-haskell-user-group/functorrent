@@ -61,7 +61,7 @@ bencInt :: ParsecBS.Parser Integer
 bencInt = do _ <- spaces
              ds <- between (char 'i') (char 'e') numbers
              return (read ds)
-               where numbers = do d' <- (char '-' <|> digit)
+               where numbers = do d' <- char '-' <|> digit
                                   ds' <- many digit
                                   parseNumber d' ds'
                      parseNumber '0' []  = return "0"
@@ -95,7 +95,7 @@ bencList = do _ <- spaces
 -- >>> parse bencDict "Bdict" (BC.pack "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee")
 -- Right (fromList [("publisher","bob"),("publisher-webpage","www.example.com"),("publisher.location","home")])
 bencDict :: ParsecBS.Parser (M.Map BVal BVal)
-bencDict = between (char 'd') (char 'e') $ M.fromList <$> (many kvpair)
+bencDict = between (char 'd') (char 'e') $ M.fromList <$> many kvpair
   where kvpair = do k <- bencStr
                     v <- bencVal
                     return (Bstr k, v)
@@ -132,7 +132,6 @@ encode (Bstr bs) = let s = BC.unpack bs
                    in show (length s) ++ ":" ++ s
 encode (Bint i) = "i" ++ show i ++ "e"
 encode (Blist xs) = "l" ++ encodeList xs ++ "e"
-  where encodeList [] = ""
-        encodeList (x:xs') = encode x ++ encodeList xs'
+  where encodeList = foldr (++ encode x) ""
 encode (Bdict d) = "d" ++ encodeDict d ++ "e"
   where encodeDict m = concat [encode k ++ encode (m M.! k) | k <- M.keys m]

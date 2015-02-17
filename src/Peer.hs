@@ -24,10 +24,10 @@ getPeers :: PeerResp -> [Peer]
 getPeers = peers
 
 getPeerResponse :: BC.ByteString -> PeerResp
-getPeerResponse body = case (Benc.decode body) of
+getPeerResponse body = case Benc.decode body of
                         Right (Benc.Bdict peerM) ->
                           let (Just (Benc.Bint i)) = M.lookup (Benc.Bstr (BC.pack "lookup")) peerM
-                              (Benc.Bstr peersBS) = peerM M.! (Benc.Bstr (BC.pack "peers"))
+                              (Benc.Bstr peersBS) = peerM M.! Benc.Bstr (BC.pack "peers")
                               pl = map (\peer -> let (ip', port') = BC.splitAt 4 peer
                                                  in Peer { ip = toIPNum ip'
                                                          , port =  toPortNum port'
@@ -39,9 +39,9 @@ getPeerResponse body = case (Benc.decode body) of
                                           , incomplete = Nothing
                                           }
                           where toPortNum = read . ("0x" ++) . BC.unpack . B16.encode
-                                toIPNum = (L.intercalate ".") .
+                                toIPNum = L.intercalate "." .
                                           map (show . toInt . ("0x" ++) . BC.unpack) .
-                                          (U.splitN 2) . B16.encode
+                                          U.splitN 2 . B16.encode
                         _ -> PeerResponse { interval = Nothing
                                           , peers = []
                                           , complete = Nothing

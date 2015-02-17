@@ -17,12 +17,12 @@ genPeerId :: String
 genPeerId = "-HS0001-20150215"
 
 exit :: IO BC.ByteString
-exit = exitWith ExitSuccess
+exit = exitSuccess
 
 usage :: IO ()
 usage = putStrLn "usage: functorrent torrent-file"
 
-parse :: [String] -> IO (BC.ByteString)
+parse :: [String] -> IO BC.ByteString
 parse [] = usage >> exit
 parse [a] = BC.readFile a
 parse _ = exit
@@ -31,11 +31,11 @@ main :: IO ()
 main = do
   args <- getArgs
   torrentStr <- parse args
-  case (Benc.decode torrentStr) of
-   Right d -> case (MInfo.mkMetaInfo d) of
+  case Benc.decode torrentStr of
+   Right d -> case MInfo.mkMetaInfo d of
                Nothing -> putStrLn "parse error"
                Just m -> do
                  body <- BC.pack <$> T.connect (MInfo.announce m) (T.prepareRequest d genPeerId)
-                 putStrLn (show (P.getPeers (P.getPeerResponse body)))
+                 print (P.getPeers (P.getPeerResponse body))
    Left e -> printError e
   putStrLn "done"

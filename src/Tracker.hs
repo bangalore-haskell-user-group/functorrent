@@ -20,23 +20,23 @@ type Url = String
 -- "%124Vx%9a%bc%de%f1%23Eg%89%ab%cd%ef%124Vx%9a"
 urlEncode :: BC.ByteString -> String
 urlEncode bs = concatMap (encode . BC.unpack) (U.splitN 2 bs)
-  where encode b@(c1 : c2 : []) = let c =  chr (read ("0x" ++ b))
-                                  in
-                                   escape c c1 c2
+  where encode b@[c1 : c2] = let c =  chr (read ("0x" ++ b))
+                             in
+                              escape c c1 c2
         encode _ = ""
         escape i c1 c2 | i `elem` nonSpecialChars = [i]
                        | otherwise = "%" ++ [c1] ++ [c2]
           where nonSpecialChars = ['A'..'Z'] ++
                                   ['a'..'z'] ++
                                   ['0'..'9'] ++
-                                  ['-', '_', '.', '~']
+                                  "-_.~"
 
-infoHash :: (M.Map Benc.BVal Benc.BVal) -> BC.ByteString
-infoHash m = let info = m M.! (Benc.Bstr (BC.pack "info"))
+infoHash :: M.Map Benc.BVal Benc.BVal -> BC.ByteString
+infoHash m = let info = m M.! Benc.Bstr (BC.pack "info")
              in (B16.encode . SHA1.hash . BC.pack . Benc.encode) info
 
 peerHash :: String -> BC.ByteString
-peerHash = (B16.encode . SHA1.hash . BC.pack)
+peerHash = B16.encode . SHA1.hash . BC.pack
 
 prepareRequest :: Benc.BVal -> String -> String
 prepareRequest (Benc.Bdict d) peer_id = let p = [("info_hash", urlEncode (infoHash d)),
@@ -50,7 +50,7 @@ prepareRequest (Benc.Bdict d) peer_id = let p = [("info_hash", urlEncode (infoHa
                                         in
                                          List.intercalate "&" [f ++ "=" ++ s | (f,s) <- p]
 
-connect :: Url -> String -> IO (String)
+connect :: Url -> String -> IO String
 connect baseurl qstr = let url = baseurl ++ "?" ++ qstr
                        in HTTP.simpleHTTP (HTTP.getRequest url) >>=
                           HTTP.getResponseBody

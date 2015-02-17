@@ -23,11 +23,11 @@ data Metainfo = Metainfo { info :: !Info
                          } deriving (Eq, Show)
 
 mkInfo :: Benc.BVal -> Maybe Info
-mkInfo (Benc.Bdict m) = let (Benc.Bint pieceLength') = m M.! (Benc.Bstr (BC.pack "piece length"))
-                            (Benc.Bstr pieces') = m M.! (Benc.Bstr (BC.pack "pieces"))
+mkInfo (Benc.Bdict m) = let (Benc.Bint pieceLength') = m M.! Benc.Bstr (BC.pack "piece length")
+                            (Benc.Bstr pieces') = m M.! Benc.Bstr (BC.pack "pieces")
                             private' = Nothing
-                            (Benc.Bstr name') = m M.! (Benc.Bstr (BC.pack "name"))
-                            (Benc.Bint length') = m M.! (Benc.Bstr (BC.pack "length"))
+                            (Benc.Bstr name') = m M.! Benc.Bstr (BC.pack "name")
+                            (Benc.Bint length') = m M.! Benc.Bstr (BC.pack "length")
                             md5sum' = Nothing
                         in Just Info { pieceLength = pieceLength'
                                      , pieces = pieces'
@@ -44,8 +44,8 @@ maybeBstrToString (Just s) = let (Benc.Bstr bs) = s
                              in Just (BC.unpack bs)
 
 mkMetaInfo :: Benc.BVal -> Maybe Metainfo
-mkMetaInfo (Benc.Bdict m) = let (Just info') = mkInfo (m M.! (Benc.Bstr (BC.pack "info")))
-                                (Benc.Bstr announce') = m M.! (Benc.Bstr (BC.pack "announce"))
+mkMetaInfo (Benc.Bdict m) = let (Just info') = mkInfo (m M.! Benc.Bstr (BC.pack "info"))
+                                (Benc.Bstr announce') = m M.! Benc.Bstr (BC.pack "announce")
 --                                announceList = M.lookup (Benc.Bstr (BC.pack "announce list"))
                                 announceList' = Nothing
                                 -- creationDate = M.lookup (Benc.Bstr (BC.pack "creation date")) m
