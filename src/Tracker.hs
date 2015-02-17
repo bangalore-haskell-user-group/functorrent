@@ -38,17 +38,18 @@ infoHash m = let info = m M.! Benc.Bstr (BC.pack "info")
 peerHash :: String -> BC.ByteString
 peerHash = B16.encode . SHA1.hash . BC.pack
 
-prepareRequest :: Benc.BVal -> String -> String
-prepareRequest (Benc.Bdict d) peer_id = let p = [("info_hash", urlEncode (infoHash d)),
-                                                 ("peer_id", urlEncode (peerHash peer_id)),
-                                                 ("port", "6881"),
-                                                 ("uploaded", "0"),
-                                                 ("downloaded", "0"),
-                                                 ("left", "0"),
-                                                 ("compact", "1"),
-                                                 ("event", "started")]
-                                        in
-                                         List.intercalate "&" [f ++ "=" ++ s | (f,s) <- p]
+prepareRequest :: Benc.BVal -> String -> Integer -> String
+prepareRequest (Benc.Bdict d) peer_id length =
+  let p = [("info_hash", urlEncode (infoHash d)),
+           ("peer_id", urlEncode (peerHash peer_id)),
+           ("port", "6881"),
+           ("uploaded", "0"),
+           ("downloaded", "0"),
+           ("left", show length),
+           ("compact", "1"),
+           ("event", "started")]
+  in
+   List.intercalate "&" [f ++ "=" ++ s | (f,s) <- p]
 
 connect :: Url -> String -> IO String
 connect baseurl qstr = let url = baseurl ++ "?" ++ qstr
