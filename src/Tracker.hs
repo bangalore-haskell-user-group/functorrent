@@ -20,9 +20,9 @@ type Url = String
 -- "%124Vx%9a%bc%de%f1%23Eg%89%ab%cd%ef%124Vx%9a"
 urlEncode :: BC.ByteString -> String
 urlEncode bs = concatMap (encode . BC.unpack) (U.splitN 2 bs)
-  where encode b@[c1 : c2] = let c =  chr (read ("0x" ++ b))
-                             in
-                              escape c c1 c2
+  where encode b@(c1 : c2 : []) = let c =  chr (read ("0x" ++ b))
+                                  in
+                                   escape c c1 c2
         encode _ = ""
         escape i c1 c2 | i `elem` nonSpecialChars = [i]
                        | otherwise = "%" ++ [c1] ++ [c2]
