@@ -25,11 +25,13 @@ Goals
 - doctest and quickcheck tests.
 - Follow Haskell Style Guide - https://github.com/tibbe/haskell-style-guide/blob/master/haskell-style.md
 
-Status
-------
+Current Status
+--------------
 
-- decode torrent files (bencoding)
+- can decode torrent files (bencoding)
 - talk to the tracker and get the peer list
+- the `main' program takes a torrent file (in the local file system) as input and
+  prints the {ip,port} for each peer, after talking to the tracker.
 
 TODO
 ----
