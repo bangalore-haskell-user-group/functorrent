@@ -34,9 +34,8 @@ Status
 TODO
 ----
 
+- Test suite.
 - Peer protocol.
 - Get the file download working in the simplest possible way.
 - Concurrency (threads per peer)
 - other advanced features of Bit Torrent (like DHT).
-
-
