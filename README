@@ -7,9 +7,12 @@ I suggest using cabal sandbox.
 
 Steps:
 
+clone the repo; cd functorrent;
+
 1. cabal sandbox init
-2. cabal install --only-dependencies
-3. cabal build # binaries in ./dist/built/functorrent/*
+2. wget http://www.stackage.org/lts/cabal.config
+3. cabal install --only-dependencies
+4. cabal build # binaries in ./dist/built/functorrent/*
 
 Goals
 -----

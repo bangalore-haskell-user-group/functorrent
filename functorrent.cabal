@@ -19,14 +19,14 @@ executable functorrent
   main-is:             Main.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.6 && <4.8,
-                       parsec ==3.1.*,
-                       containers ==0.5.*,
-                       time ==1.4.2,
+  build-depends:       base,
+                       parsec,
+                       containers,
+                       time,
                        bytestring,
                        base16-bytestring,
                        doctest,
-                       HTTP >=4000.2.1,
+                       HTTP,
                        cryptohash
   hs-source-dirs:      src
   ghc-options:         -Wall -fwarn-incomplete-patterns
