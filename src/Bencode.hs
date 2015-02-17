@@ -132,6 +132,6 @@ encode (Bstr bs) = let s = BC.unpack bs
                    in show (length s) ++ ":" ++ s
 encode (Bint i) = "i" ++ show i ++ "e"
 encode (Blist xs) = "l" ++ encodeList xs ++ "e"
-  where encodeList = foldr (++ encode x) ""
+  where encodeList = foldr (++ encode xs) ""
 encode (Bdict d) = "d" ++ encodeDict d ++ "e"
   where encodeDict m = concat [encode k ++ encode (m M.! k) | k <- M.keys m]
