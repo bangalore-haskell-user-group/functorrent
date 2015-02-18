@@ -20,7 +20,7 @@ type Url = String
 -- "%124Vx%9a%bc%de%f1%23Eg%89%ab%cd%ef%124Vx%9a"
 urlEncode :: BC.ByteString -> String
 urlEncode bs = concatMap (encode . BC.unpack) (U.splitN 2 bs)
-  where encode b@(c1 : c2 : []) = let c =  chr (read ("0x" ++ b))
+  where encode b@[c1, c2] = let c =  chr (read ("0x" ++ b))
                                   in
                                    escape c c1 c2
         encode _ = ""
@@ -39,13 +39,13 @@ peerHash :: String -> BC.ByteString
 peerHash = B16.encode . SHA1.hash . BC.pack
 
 prepareRequest :: Benc.BVal -> String -> Integer -> String
-prepareRequest (Benc.Bdict d) peer_id length =
+prepareRequest (Benc.Bdict d) peer_id len =
   let p = [("info_hash", urlEncode (infoHash d)),
            ("peer_id", urlEncode (peerHash peer_id)),
            ("port", "6881"),
            ("uploaded", "0"),
            ("downloaded", "0"),
-           ("left", show length),
+           ("left", show len),
            ("compact", "1"),
            ("event", "started")]
   in
