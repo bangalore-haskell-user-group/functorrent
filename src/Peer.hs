@@ -2,10 +2,14 @@ module Peer where
 
 import qualified Utils as U
 import qualified Bencode as Benc
+import qualified Tracker as T
 import qualified Data.Map as M
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Base16 as B16
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
+import qualified Data.Binary as Bin
+import qualified Data.Int as DI
 
 data Peer = Peer { ip :: String
                  , port :: Integer
@@ -47,3 +51,13 @@ getPeerResponse body = case Benc.decode body of
                                           , complete = Nothing
                                           , incomplete = Nothing
                                           }
+
+
+handShakeMsg :: M.Map Benc.BVal Benc.BVal -> String -> BC.ByteString
+handShakeMsg m peer_id = let pstrlen = BC.concat $ BL.toChunks $ Bin.encode (19 :: DI.Int8)
+                             pstr = BC.pack "BitTorrent protocol"
+                             reserved = BC.replicate 8 '\0'
+                             infoH = T.infoHash m
+                             peerH = T.peerHash peer_id
+                         in
+                          BC.concat [pstrlen, pstr, reserved, infoH, peerH]
