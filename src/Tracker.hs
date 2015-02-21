@@ -17,8 +17,8 @@ type Url = String
 
 -- | urlEncodeHash
 --
--- >>> urlEncodeHash $ BC.pack "123456789abcdef123456789abcdef123456789a"
--- "%124vx%9a%bc%de%f1%23Eg%89%ab%cd%ef%124Vx%9a"
+-- >>> urlEncodeHash $ pack "123456789abcdef123456789abcdef123456789a"
+-- "%124Vx%9a%bc%de%f1%23Eg%89%ab%cd%ef%124Vx%9a"
 urlEncodeHash :: ByteString -> String
 urlEncodeHash bs = concatMap (encode' . unpack) (splitN 2 bs)
   where encode' b@[c1, c2] = let c =  chr (read ("0x" ++ b))
