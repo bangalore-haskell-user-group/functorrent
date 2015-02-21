@@ -8,20 +8,13 @@ import Text.ParserCombinators.Parsec
 import Control.Applicative ((<*))
 import Data.Functor
 
-data BVal =
-    Bint Integer
-  | Bstr BC.ByteString
-  | Blist [BVal]
-  | Bdict InfoDict
-  deriving (Ord, Eq)
+data BVal = Bint Integer
+          | Bstr BC.ByteString
+          | Blist [BVal]
+          | Bdict InfoDict
+            deriving (Ord, Eq, Show)
 
 type InfoDict = M.Map BVal BVal
-
-instance Show BVal where
-  show (Bint i) = show i
-  show (Bstr s) = "\"" ++ BC.unpack s ++ "\""
-  show (Blist xs) = show xs
-  show (Bdict m) = show m
 
 -- $setup
 -- >>> import Data.Either
