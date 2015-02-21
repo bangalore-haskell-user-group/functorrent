@@ -12,7 +12,6 @@ import qualified Utils as U
 import Data.Char
 
 type Url = String
-type InfoDict = M.Map Benc.BVal Benc.BVal
 
 -- | urlEncodeHash
 --
@@ -35,7 +34,7 @@ infoHash :: M.Map Benc.BVal Benc.BVal -> BC.ByteString
 infoHash m = let info = m M.! Benc.Bstr (BC.pack "info")
              in (SHA1.hash . BC.pack . Benc.encode) info
 
-prepareRequest :: InfoDict -> String -> Integer -> String
+prepareRequest :: Benc.InfoDict -> String -> Integer -> String
 prepareRequest d peer_id len =
   let p = [("info_hash", urlEncodeHash ((B16.encode . infoHash) d)),
            ("peer_id", HB.urlEncode peer_id),

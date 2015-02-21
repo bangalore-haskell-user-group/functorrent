@@ -12,8 +12,10 @@ data BVal =
     Bint Integer
   | Bstr BC.ByteString
   | Blist [BVal]
-  | Bdict (M.Map BVal BVal)
+  | Bdict InfoDict
   deriving (Ord, Eq)
+
+type InfoDict = M.Map BVal BVal
 
 instance Show BVal where
   show (Bint i) = show i

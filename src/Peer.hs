@@ -53,7 +53,7 @@ getPeerResponse body = case Benc.decode body of
                                           }
 
 
-handShakeMsg :: M.Map Benc.BVal Benc.BVal -> String -> BC.ByteString
+handShakeMsg :: Benc.InfoDict -> String -> BC.ByteString
 handShakeMsg m peer_id = let pstrlen = BC.concat $ BL.toChunks $ Bin.encode (19 :: DI.Int8)
                              pstr = BC.pack "BitTorrent protocol"
                              reserved = BC.replicate 8 '\0'
