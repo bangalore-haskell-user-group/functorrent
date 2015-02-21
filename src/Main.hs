@@ -37,7 +37,9 @@ main = do
             Nothing -> putStrLn "parse error"
             Just m -> do
               let len = MInfo.lengthInBytes (MInfo.info m)
-              body <- BC.pack <$> T.connect (MInfo.announce m) (T.prepareRequest d peerId len)
+                  (Benc.Bdict d') = d
+              body <- BC.pack <$> T.connect (MInfo.announce m) (T.prepareRequest d' peerId len)
               print (P.getPeers (P.getPeerResponse body))
+              print (BC.length (P.handShakeMsg d' peerId))
       Left e -> printError e
     putStrLn "done"

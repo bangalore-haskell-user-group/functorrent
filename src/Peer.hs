@@ -59,5 +59,4 @@ handShakeMsg m peer_id = let pstrlen = BC.concat $ BL.toChunks $ Bin.encode (19 
                              reserved = BC.replicate 8 '\0'
                              infoH = T.infoHash m
                              peerID = BC.pack peer_id
-                         in
-                          BC.concat [pstrlen, pstr, reserved, infoH, peerID]
+                         in BC.concat [pstrlen, pstr, reserved, infoH, peerID]
