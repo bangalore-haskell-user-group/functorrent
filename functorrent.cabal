@@ -27,7 +27,8 @@ executable functorrent
                        base16-bytestring,
                        doctest,
                        HTTP,
-                       cryptohash
+                       cryptohash,
+                       binary
   hs-source-dirs:      src
   ghc-options:         -Wall -fwarn-incomplete-patterns
   default-language:    Haskell2010

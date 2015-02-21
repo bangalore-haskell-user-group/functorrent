@@ -4,22 +4,23 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.Map as M
 import qualified Data.List as List
 import qualified Network.HTTP as HTTP
+import qualified Network.HTTP.Base as HB
 import qualified Bencode as Benc
 import qualified Crypto.Hash.SHA1 as SHA1
 import qualified Data.ByteString.Base16 as B16
 import qualified Utils as U
 import Data.Char
--- import Network.HTTP
+
 
 type Url = String
 
 
--- | urlEncode
+-- | urlEncodeHash
 --
--- >>> urlEncode $ BC.pack "123456789abcdef123456789abcdef123456789a"
+-- >>> urlEncodeHash $ BC.pack "123456789abcdef123456789abcdef123456789a"
 -- "%124Vx%9a%bc%de%f1%23Eg%89%ab%cd%ef%124Vx%9a"
-urlEncode :: BC.ByteString -> String
-urlEncode bs = concatMap (encode . BC.unpack) (U.splitN 2 bs)
+urlEncodeHash :: BC.ByteString -> String
+urlEncodeHash bs = concatMap (encode . BC.unpack) (U.splitN 2 bs)
   where encode b@[c1, c2] = let c =  chr (read ("0x" ++ b))
                                   in
                                    escape c c1 c2
@@ -35,13 +36,10 @@ infoHash :: M.Map Benc.BVal Benc.BVal -> BC.ByteString
 infoHash m = let info = m M.! Benc.Bstr (BC.pack "info")
              in (B16.encode . SHA1.hash . BC.pack . Benc.encode) info
 
-peerHash :: String -> BC.ByteString
-peerHash = B16.encode . SHA1.hash . BC.pack
-
 prepareRequest :: Benc.BVal -> String -> Integer -> String
 prepareRequest (Benc.Bdict d) peer_id len =
-  let p = [("info_hash", urlEncode (infoHash d)),
-           ("peer_id", urlEncode (peerHash peer_id)),
+  let p = [("info_hash", urlEncodeHash (infoHash d)),
+           ("peer_id", HB.urlEncode peer_id),
            ("port", "6881"),
            ("uploaded", "0"),
            ("downloaded", "0"),

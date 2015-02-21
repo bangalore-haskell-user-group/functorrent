@@ -13,8 +13,8 @@ import Data.Functor
 printError :: Parsec.ParseError -> IO ()
 printError e = putStrLn $ "parse error: " ++ show e
 
-genPeerId :: String
-genPeerId = "-HS0001-20150215"
+peerId :: String
+peerId = "-HS0001-*-*-20150215"
 
 exit :: IO BC.ByteString
 exit = exitSuccess
@@ -37,7 +37,7 @@ main = do
             Nothing -> putStrLn "parse error"
             Just m -> do
               let len = MInfo.lengthInBytes (MInfo.info m)
-              body <- BC.pack <$> T.connect (MInfo.announce m) (T.prepareRequest d genPeerId len)
+              body <- BC.pack <$> T.connect (MInfo.announce m) (T.prepareRequest d peerId len)
               print (P.getPeers (P.getPeerResponse body))
       Left e -> printError e
     putStrLn "done"

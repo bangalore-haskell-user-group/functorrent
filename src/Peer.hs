@@ -58,6 +58,6 @@ handShakeMsg m peer_id = let pstrlen = BC.concat $ BL.toChunks $ Bin.encode (19 
                              pstr = BC.pack "BitTorrent protocol"
                              reserved = BC.replicate 8 '\0'
                              infoH = T.infoHash m
-                             peerH = T.peerHash peer_id
+                             peerID = BC.pack peer_id
                          in
-                          BC.concat [pstrlen, pstr, reserved, infoH, peerH]
+                          BC.concat [pstrlen, pstr, reserved, infoH, peerID]
