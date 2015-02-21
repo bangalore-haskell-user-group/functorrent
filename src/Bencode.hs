@@ -1,56 +1,55 @@
 module Bencode where
 
--- import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Char8 as BC
-import qualified Data.Map.Strict as M
-import qualified Text.Parsec.ByteString as ParsecBS
-import Text.ParserCombinators.Parsec
 import Control.Applicative ((<*))
-import Data.Functor
+import Data.ByteString.Char8 (ByteString, pack, unpack)
+import Data.Functor ((<$>))
+import Data.Map.Strict (Map, fromList, keys, (!))
+import Text.ParserCombinators.Parsec
+import qualified Text.Parsec.ByteString as ParsecBS
 
 data BVal = Bint Integer
-          | Bstr BC.ByteString
+          | Bstr ByteString
           | Blist [BVal]
           | Bdict InfoDict
             deriving (Ord, Eq, Show)
 
-type InfoDict = M.Map BVal BVal
+type InfoDict = Map BVal BVal
 
 -- $setup
 -- >>> import Data.Either
 
 -- | parse strings
 --
--- >>> parse bencStr "Bstr" (BC.pack "4:spam")
+-- >>> parse bencStr "Bstr" (pack "4:spam")
 -- Right "spam"
--- >>> parse bencStr "Bstr" (BC.pack "0:")
+-- >>> parse bencStr "Bstr" (pack "0:")
 -- Right ""
--- >>> parse bencStr "Bstr" (BC.pack "0:hello")
+-- >>> parse bencStr "Bstr" (pack "0:hello")
 -- Right ""
 --
-bencStr :: ParsecBS.Parser BC.ByteString
+bencStr :: ParsecBS.Parser ByteString
 bencStr = do _ <- spaces
              ds <- many1 digit <* char ':'
              s <- count (read ds) anyChar
-             return (BC.pack s)
+             return (pack s)
 
 -- | parse integers
 --
--- >>> parse bencInt "Bint" (BC.pack "i42e")
+-- >>> parse bencInt "Bint" (pack "i42e")
 -- Right 42
--- >>> parse bencInt "Bint" (BC.pack "i123e")
+-- >>> parse bencInt "Bint" (pack "i123e")
 -- Right 123
--- >>> parse bencInt "Bint" (BC.pack "i1e")
+-- >>> parse bencInt "Bint" (pack "i1e")
 -- Right 1
--- >>> parse bencInt "Bint" (BC.pack "i0e")
+-- >>> parse bencInt "Bint" (pack "i0e")
 -- Right 0
--- >>> parse bencInt "Bint" (BC.pack "i-1e")
+-- >>> parse bencInt "Bint" (pack "i-1e")
 -- Right (-1)
--- >>> isLeft $ parse bencInt "Bint" (BC.pack "i01e")
+-- >>> isLeft $ parse bencInt "Bint" (pack "i01e")
 -- True
--- >>> isLeft $ parse bencInt "Bint" (BC.pack "i00e")
+-- >>> isLeft $ parse bencInt "Bint" (pack "i00e")
 -- True
--- >>> isLeft $ parse bencInt "Bint" (BC.pack "i002e")
+-- >>> isLeft $ parse bencInt "Bint" (pack "i002e")
 -- True
 bencInt :: ParsecBS.Parser Integer
 bencInt = do _ <- spaces
@@ -67,13 +66,13 @@ bencInt = do _ <- spaces
 
 -- | parse lists
 --
--- >>> parse bencList "Blist" (BC.pack "le")
+-- >>> parse bencList "Blist" (pack "le")
 -- Right []
--- >>> parse bencList "Blist" (BC.pack "l4:spam4:eggse")
+-- >>> parse bencList "Blist" (pack "l4:spam4:eggse")
 -- Right ["spam","eggs"]
--- >>> parse bencList "Blist" (BC.pack "l4:spami42ee")
+-- >>> parse bencList "Blist" (pack "l4:spami42ee")
 -- Right ["spam",42]
--- >>> parse bencList "Blist" (BC.pack "l4:spam4:eggsli42eee")
+-- >>> parse bencList "Blist" (pack "l4:spam4:eggsli42eee")
 -- Right ["spam","eggs",[42]]
 bencList :: ParsecBS.Parser [BVal]
 bencList = do _ <- spaces
@@ -81,16 +80,16 @@ bencList = do _ <- spaces
 
 -- | parse dict
 --
--- >>> parse bencDict "Bdict" (BC.pack "de")
+-- >>> parse bencDict "Bdict" (pack "de")
 -- Right (fromList [])
--- >>> parse bencDict "Bdict" (BC.pack "d3:cow3:moo4:spam4:eggse")
+-- >>> parse bencDict "Bdict" (pack "d3:cow3:moo4:spam4:eggse")
 -- Right (fromList [("cow","moo"),("spam","eggs")])
--- >>> parse bencDict "Bdict" (BC.pack "d4:spaml1:a1:bee")
+-- >>> parse bencDict "Bdict" (pack "d4:spaml1:a1:bee")
 -- Right (fromList [("spam",["a","b"])])
--- >>> parse bencDict "Bdict" (BC.pack "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee")
+-- >>> parse bencDict "Bdict" (pack "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee")
 -- Right (fromList [("publisher","bob"),("publisher-webpage","www.example.com"),("publisher.location","home")])
-bencDict :: ParsecBS.Parser (M.Map BVal BVal)
-bencDict = between (char 'd') (char 'e') $ M.fromList <$> many kvpair
+bencDict :: ParsecBS.Parser (Map BVal BVal)
+bencDict = between (char 'd') (char 'e') $ fromList <$> many kvpair
   where kvpair = do k <- bencStr
                     v <- bencVal
                     return (Bstr k, v)
@@ -101,32 +100,32 @@ bencVal = Bstr <$> bencStr <|>
           Blist <$> bencList <|>
           Bdict <$> bencDict
 
-decode :: BC.ByteString -> Either ParseError BVal
+decode :: ByteString -> Either ParseError BVal
 decode = parse bencVal "BVal"
 
 -- given an input dict or int or string, encode
 -- it into a bencoded bytestring.
 -- | encode bencoded-values
 --
--- >>> encode (Bstr (BC.pack ""))
+-- >>> encode (Bstr (pack ""))
 -- "0:"
--- >>> encode (Bstr (BC.pack "spam"))
+-- >>> encode (Bstr (pack "spam"))
 -- "4:spam"
 -- >>> encode (Bint 0)
 -- "i0e"
 -- >>> encode (Bint 42)
 -- "i42e"
--- >>> encode (Blist [(Bstr (BC.pack "spam")), (Bstr (BC.pack "eggs"))])
+-- >>> encode (Blist [(Bstr (pack "spam")), (Bstr (pack "eggs"))])
 -- "l4:spam4:eggse"
 -- >>> encode (Blist [])
 -- "le"
--- >>> encode (Bdict (M.fromList [(Bstr $ BC.pack "spam", Bstr $ BC.pack "eggs")]))
+-- >>> encode (Bdict (fromList [(Bstr $ pack "spam", Bstr $ pack "eggs")]))
 -- "d4:spam4:eggse"
 encode :: BVal -> String
-encode (Bstr bs) = let s = BC.unpack bs
+encode (Bstr bs) = let s = unpack bs
                    in show (length s) ++ ":" ++ s
 encode (Bint i) = "i" ++ show i ++ "e"
 encode (Blist xs) = "l" ++ encodeList xs ++ "e"
   where encodeList = foldr ((++) . encode) ""
 encode (Bdict d) = "d" ++ encodeDict d ++ "e"
-  where encodeDict m = concat [encode k ++ encode (m M.! k) | k <- M.keys m]
+  where encodeDict m = concat [encode k ++ encode ((!) m k) | k <- keys m]
