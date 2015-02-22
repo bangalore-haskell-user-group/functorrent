@@ -128,4 +128,4 @@ encode (Bint i) = "i" ++ show i ++ "e"
 encode (Blist xs) = "l" ++ encodeList xs ++ "e"
   where encodeList = foldr ((++) . encode) ""
 encode (Bdict d) = "d" ++ encodeDict d ++ "e"
-  where encodeDict m = concat [encode k ++ encode ((!) m k) | k <- keys m]
+  where encodeDict m = concat [encode k ++ encode (m ! k) | k <- keys m]
