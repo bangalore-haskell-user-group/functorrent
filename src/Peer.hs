@@ -1,20 +1,25 @@
 module Peer where
 
-import qualified Utils as U
-import qualified Bencode as Benc
-import qualified Tracker as T
-import qualified Data.Map as M
-import qualified Data.ByteString.Char8 as BC
-import qualified Data.ByteString.Base16 as B16
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.List as L
-import qualified Data.Binary as Bin
-import qualified Data.Int as DI
+import Prelude hiding (lookup, concat, replicate, splitAt)
 
-data Peer = Peer { ip :: String
-                 , port :: Integer
-                 } deriving (Show)
-                            
+import Bencode (BVal(..), InfoDict, decode)
+import Data.ByteString.Char8 (ByteString, pack, unpack, concat, replicate, splitAt)
+import Data.ByteString.Lazy (toChunks)
+import Data.Int (Int8)
+import Data.List (intercalate)
+import Data.Map as M ((!), lookup)
+import Tracker (infoHash)
+import Utils (splitN)
+import qualified Data.Binary as Bin (encode)
+import qualified Data.ByteString.Base16 as B16 (encode)
+
+
+type Address = String
+type Port = Integer
+
+data Peer = Peer Address Port
+            deriving (Show)
+
 data PeerResp = PeerResponse { interval :: Maybe Integer
                              , peers :: [Peer]
                              , complete :: Maybe Integer
@@ -27,25 +32,24 @@ toInt = read
 getPeers :: PeerResp -> [Peer]
 getPeers = peers
 
-getPeerResponse :: BC.ByteString -> PeerResp
-getPeerResponse body = case Benc.decode body of
-                        Right (Benc.Bdict peerM) ->
-                          let (Just (Benc.Bint i)) = M.lookup (Benc.Bstr (BC.pack "lookup")) peerM
-                              (Benc.Bstr peersBS) = peerM M.! Benc.Bstr (BC.pack "peers")
-                              pl = map (\peer -> let (ip', port') = BC.splitAt 4 peer
-                                                 in Peer { ip = toIPNum ip'
-                                                         , port =  toPortNum port'
-                                                         })
-                                   (U.splitN 6 peersBS)
+getPeerResponse :: ByteString -> PeerResp
+getPeerResponse body = case decode body of
+                        Right (Bdict peerM) ->
+                          let (Just (Bint i)) = lookup (Bstr (pack "lookup")) peerM
+                              (Bstr peersBS) = peerM ! Bstr (pack "peers")
+                              pl = map (\peer -> let (ip', port') = splitAt 4 peer
+                                                 in Peer (toIPNum ip') (toPortNum port'))
+                                   (splitN 6 peersBS)
                           in PeerResponse { interval = Just i
                                           , peers = pl
                                           , complete = Nothing
                                           , incomplete = Nothing
                                           }
-                          where toPortNum = read . ("0x" ++) . BC.unpack . B16.encode
-                                toIPNum = L.intercalate "." .
-                                          map (show . toInt . ("0x" ++) . BC.unpack) .
-                                          U.splitN 2 . B16.encode
+                          where toPortNum = read . ("0x" ++) . unpack . B16.encode
+                                toIPNum = intercalate "." .
+                                          map (show . toInt . ("0x" ++) . unpack) .
+                                          splitN 2 . B16.encode
+
                         _ -> PeerResponse { interval = Nothing
                                           , peers = []
                                           , complete = Nothing
@@ -53,10 +57,10 @@ getPeerResponse body = case Benc.decode body of
                                           }
 
 
-handShakeMsg :: Benc.InfoDict -> String -> BC.ByteString
-handShakeMsg m peer_id = let pstrlen = BC.concat $ BL.toChunks $ Bin.encode (19 :: DI.Int8)
-                             pstr = BC.pack "BitTorrent protocol"
-                             reserved = BC.replicate 8 '\0'
-                             infoH = T.infoHash m
-                             peerID = BC.pack peer_id
-                         in BC.concat [pstrlen, pstr, reserved, infoH, peerID]
+handShakeMsg :: InfoDict -> String -> ByteString
+handShakeMsg m peer_id = let pstrlen = concat $ toChunks $ Bin.encode (19 :: Int8)
+                             pstr = pack "BitTorrent protocol"
+                             reserved = replicate 8 '\0'
+                             infoH = infoHash m
+                             peerID = pack peer_id
+                         in concat [pstrlen, pstr, reserved, infoH, peerID]
