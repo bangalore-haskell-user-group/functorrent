@@ -24,11 +24,11 @@ data Metainfo = Metainfo { info :: !Info
                          } deriving (Eq, Show)
 
 mkInfo :: BVal -> Maybe Info
-mkInfo (Bdict m) = let (Bint pieceLength') = m M.! Bstr (pack "piece length")
-                       (Bstr pieces') = m M.! Bstr (pack "pieces")
+mkInfo (Bdict m) = let (Bint pieceLength') = m ! Bstr (pack "piece length")
+                       (Bstr pieces') = m ! Bstr (pack "pieces")
                        private' = Nothing
-                       (Bstr name') = m M.! Bstr (pack "name")
-                       (Bint length') = m M.! Bstr (pack "length")
+                       (Bstr name') = m ! Bstr (pack "name")
+                       (Bint length') = m ! Bstr (pack "length")
                        md5sum' = Nothing
                    in Just Info { pieceLength = pieceLength'
                                 , pieces = pieces'
@@ -44,8 +44,8 @@ maybeBstrToString (Just s) = let (Bstr bs) = s
                              in Just (unpack bs)
 
 mkMetaInfo :: BVal -> Maybe Metainfo
-mkMetaInfo (Bdict m) = let (Just info') = mkInfo (m M.! Bstr (pack "info"))
-                           (Bstr announce') = m M.! Bstr (pack "announce")
+mkMetaInfo (Bdict m) = let (Just info') = mkInfo (m ! Bstr (pack "info"))
+                           (Bstr announce') = m ! Bstr (pack "announce")
                            -- announceList = lookup (Bstr (pack "announce list"))
                            announceList' = Nothing
                            -- creationDate = lookup (Bstr (pack "creation date")) m

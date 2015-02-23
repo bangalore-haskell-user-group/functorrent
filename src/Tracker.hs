@@ -30,7 +30,7 @@ urlEncodeHash bs = concatMap (encode' . unpack) (splitN 2 bs)
         nonSpecialChars = ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ "-_.~"
 
 infoHash :: Map BVal BVal -> ByteString
-infoHash m = let info = m M.! Bstr (pack "info")
+infoHash m = let info = m ! Bstr (pack "info")
              in (hash . pack . encode) info
 
 prepareRequest :: InfoDict -> String -> Integer -> String
