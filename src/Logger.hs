@@ -1,6 +1,5 @@
 module Logger (
-      Logger
-    , initLogger
+      initLogger
     , logMessage
     , logStop
     ) where
