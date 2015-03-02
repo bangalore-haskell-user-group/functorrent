@@ -11,9 +11,10 @@ import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import Tracker (connect, prepareRequest)
 import Text.ParserCombinators.Parsec (ParseError)
+import Logger
 
-printError :: ParseError -> IO ()
-printError e = putStrLn $ "parse error: " ++ show e
+logError :: ParseError -> (String -> IO ()) -> IO ()
+logError e logMsg = logMsg $ "parse error: \n" ++ show e
 
 peerId :: String
 peerId = "-HS0001-*-*-20150215"
@@ -32,16 +33,29 @@ parse _ = exit
 main :: IO ()
 main = do
     args <- getArgs
+    logR <- initLogger
+    let logMsg = logMessage logR
+    logMsg $ "Parsing input file: " ++ concat args
     torrentStr <- parse args
     case decode torrentStr of
       Right d ->
           case mkMetaInfo d of
-            Nothing -> putStrLn "parse error"
+            Nothing -> logMsg "parse error"
             Just m -> do
+              logMsg "Input File OK"
+
               let len = lengthInBytes $ info m
                   (Bdict d') = d
+              
+              logMsg "Trying to fetch peers: "
+
               body <- pack <$> connect (announce m) (prepareRequest d' peerId len)
-              print $ getPeers $ getPeerResponse body
-              print $ length $ handShakeMsg d' peerId
-      Left e -> printError e
-    putStrLn "done"
+              
+              let peerResponse = show $ getPeers $ getPeerResponse body
+              logMsg $ "Peers List : " ++ peerResponse
+              
+              let hsMsgLen = show $ length $ handShakeMsg d' peerId
+              logMsg $ "Hand-shake message length : " ++ hsMsgLen
+
+      Left e -> logError e logMsg
+    logStop logR
