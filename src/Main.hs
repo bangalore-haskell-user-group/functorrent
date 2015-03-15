@@ -1,17 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Prelude hiding (length, readFile)
-
-import Bencode (decode, BVal(..))
-import Data.ByteString.Char8 as BC (ByteString, pack, length, readFile, length)
-import Data.Functor ((<$>))
-import Metainfo (announce, lengthInBytes, mkMetaInfo, info)
-import Peer (getPeers, getPeerResponse, handShakeMsg)
+import Prelude hiding (length, readFile, writeFile)
+import Data.ByteString.Char8 (ByteString, length, readFile, writeFile, length)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
-import Tracker (connect, prepareRequest)
 import Text.ParserCombinators.Parsec (ParseError)
-import Logger
+
+import Bencode (decode, BVal(..))
+import Logger (initLogger, logMessage, logStop)
+import Metainfo (announce, lengthInBytes, mkMetaInfo, info, name)
+import Peer (getPeers, getPeerResponse, handShakeMsg)
+import Tracker (connect, prepareRequest)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e
@@ -46,14 +46,16 @@ main = do
 
               let len = lengthInBytes $ info m
                   (Bdict d') = d
-              
-              logMsg "Trying to fetch peers: "
 
-              body <- pack <$> connect (announce m) (prepareRequest d' peerId len)
-              
+              logMsg "Trying to fetch peers: "
+              body <- connect (announce m) (prepareRequest d' peerId len)
+
+              -- TODO: Write to ~/.functorrent/caches
+              writeFile (name (info m) ++ ".cache") body
+
               let peerResponse = show $ getPeers $ getPeerResponse body
               logMsg $ "Peers List : " ++ peerResponse
-              
+
               let hsMsgLen = show $ length $ handShakeMsg d' peerId
               logMsg $ "Hand-shake message length : " ++ hsMsgLen
 
