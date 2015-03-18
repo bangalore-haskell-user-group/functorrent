@@ -7,9 +7,11 @@ import Crypto.Hash.SHA1 (hash)
 import Data.ByteString.Char8 (ByteString, pack, unpack)
 import Data.Char (chr)
 import Data.List (intercalate)
+import Data.Maybe (fromJust)
 import Data.Map as M (Map, (!))
-import Network.HTTP (simpleHTTP, getRequest, getResponseBody)
+import Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
 import Network.HTTP.Base (urlEncode)
+import Network.URI (parseURI)
 import Utils (splitN)
 import qualified Data.ByteString.Base16 as B16 (encode)
 
@@ -45,7 +47,6 @@ prepareRequest d peer_id len =
            ("event", "started")]
   in intercalate "&" [f ++ "=" ++ s | (f,s) <- p]
 
-connect :: Url -> String -> IO String
-connect baseurl qstr = let url = baseurl ++ "?" ++ qstr
-                       in simpleHTTP (getRequest url) >>=
-                          getResponseBody
+connect :: Url -> String -> IO ByteString
+connect baseurl qstr = simpleHTTP (defaultGETRequest_ url) >>= getResponseBody
+    where url = fromJust . parseURI $ (baseurl ++ "?" ++ qstr)
