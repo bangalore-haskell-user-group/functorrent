@@ -35,8 +35,7 @@ library
                        cryptohash,
                        doctest,
                        network-uri,
-                       parsec,
-                       time
+                       parsec
 
 executable functorrent
   main-is:             Main.hs
@@ -53,5 +52,4 @@ executable functorrent
                        cryptohash,
                        doctest,
                        network-uri,
-                       parsec,
-                       time
+                       parsec
