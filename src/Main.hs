@@ -2,7 +2,7 @@
 module Main where
 
 import Prelude hiding (length, readFile, writeFile)
-import Data.ByteString.Char8 (ByteString, length, readFile, writeFile, length)
+import Data.ByteString.Char8 (ByteString, readFile, writeFile, length)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import Text.ParserCombinators.Parsec (ParseError)
