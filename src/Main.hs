@@ -7,11 +7,11 @@ import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import Text.ParserCombinators.Parsec (ParseError)
 
-import Bencode (decode, BVal(..))
-import Logger (initLogger, logMessage, logStop)
-import Metainfo (announce, lengthInBytes, mkMetaInfo, info, name)
-import Peer (getPeers, getPeerResponse, handShakeMsg)
-import Tracker (connect, prepareRequest)
+import FuncTorrent.Bencode (decode, BVal(..))
+import FuncTorrent.Logger (initLogger, logMessage, logStop)
+import FuncTorrent.Metainfo (announce, lengthInBytes, mkMetaInfo, info, name)
+import FuncTorrent.Peer (getPeers, getPeerResponse, handShakeMsg)
+import FuncTorrent.Tracker (connect, prepareRequest)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e

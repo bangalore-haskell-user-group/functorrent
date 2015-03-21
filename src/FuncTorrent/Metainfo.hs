@@ -1,9 +1,19 @@
-module Metainfo where
+module FuncTorrent.Metainfo
+    (Info,
+     Metainfo,
+     mkMetaInfo,
+     mkInfo,
+     announce,
+     lengthInBytes,
+     info,
+     name
+    ) where
 
 import Prelude hiding (lookup)
-import Bencode (BVal(..))
 import Data.ByteString.Char8 (ByteString, pack, unpack)
 import Data.Map as M ((!), lookup)
+
+import FuncTorrent.Bencode (BVal(..))
 
 -- only single file mode supported for the time being.
 data Info = Info { pieceLength :: !Integer

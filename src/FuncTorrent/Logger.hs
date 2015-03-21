@@ -1,4 +1,4 @@
-module Logger (
+module FuncTorrent.Logger (
       initLogger
     , logMessage
     , logStop
@@ -13,7 +13,7 @@ import Control.Concurrent
 -- Here the (MVar LogCommand) is used for actual thread communication
 -- So if multiple threads try to log, then the logger will be thread-safe
 -- Also the 'loop' in logger will wait for the message to come.
--- 
+--
 -- The MVar in stop is just to ensure the logger thread executes completely
 -- Before exiting the main application.
 --

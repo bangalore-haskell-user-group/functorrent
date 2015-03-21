@@ -1,8 +1,11 @@
-module Tracker where
+module FuncTorrent.Tracker
+    (connect,
+     infoHash,
+     prepareRequest,
+     urlEncodeHash
+    ) where
 
 import Prelude hiding (lookup)
-
-import Bencode (BVal(..), InfoDict, encode)
 import Crypto.Hash.SHA1 (hash)
 import Data.ByteString.Char8 (ByteString, pack, unpack)
 import Data.Char (chr)
@@ -12,8 +15,10 @@ import Data.Map as M (Map, (!))
 import Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
 import Network.HTTP.Base (urlEncode)
 import Network.URI (parseURI)
-import Utils (splitN)
 import qualified Data.ByteString.Base16 as B16 (encode)
+
+import FuncTorrent.Bencode (BVal(..), InfoDict, encode)
+import FuncTorrent.Utils (splitN)
 
 type Url = String
 
