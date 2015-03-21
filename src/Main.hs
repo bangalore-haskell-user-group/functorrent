@@ -10,7 +10,7 @@ import Text.ParserCombinators.Parsec (ParseError)
 import FuncTorrent.Bencode (decode, BVal(..))
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (announce, lengthInBytes, mkMetaInfo, info, name)
-import FuncTorrent.Peer (getPeers, getPeerResponse, handShakeMsg)
+import FuncTorrent.Peer (peers, getPeerResponse, handShakeMsg)
 import FuncTorrent.Tracker (connect, prepareRequest)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
@@ -53,7 +53,7 @@ main = do
               -- TODO: Write to ~/.functorrent/caches
               writeFile (name (info m) ++ ".cache") body
 
-              let peerResponse = show $ getPeers $ getPeerResponse body
+              let peerResponse = show $ peers $ getPeerResponse body
               logMsg $ "Peers List : " ++ peerResponse
 
               let hsMsgLen = show $ length $ handShakeMsg d' peerId

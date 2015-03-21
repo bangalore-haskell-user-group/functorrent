@@ -1,7 +1,6 @@
 module FuncTorrent.Peer
     (Peer,
      PeerResp(..),
-     getPeers,
      getPeerResponse,
      handShakeMsg
     ) where
@@ -34,9 +33,6 @@ data PeerResp = PeerResponse { interval :: Maybe Integer
 
 toInt :: String -> Integer
 toInt = read
-
-getPeers :: PeerResp -> [Peer]
-getPeers = peers
 
 getPeerResponse :: ByteString -> PeerResp
 getPeerResponse body = case decode body of

@@ -10,7 +10,6 @@ module FuncTorrent
      decode,
      encode,
      getPeerResponse,
-     getPeers,
      handShakeMsg,
      info,
      infoHash,
