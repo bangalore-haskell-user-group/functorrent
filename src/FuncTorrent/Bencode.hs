@@ -1,4 +1,9 @@
-module Bencode where
+module FuncTorrent.Bencode
+    (BVal(..),
+     InfoDict,
+     encode,
+     decode
+    ) where
 
 import Control.Applicative ((<*))
 import Data.ByteString.Char8 (ByteString, pack, unpack)

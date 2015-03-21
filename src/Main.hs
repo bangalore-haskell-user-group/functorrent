@@ -2,16 +2,16 @@
 module Main where
 
 import Prelude hiding (length, readFile, writeFile)
-import Data.ByteString.Char8 (ByteString, length, readFile, writeFile, length)
+import Data.ByteString.Char8 (ByteString, readFile, writeFile, length)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import Text.ParserCombinators.Parsec (ParseError)
 
-import Bencode (decode, BVal(..))
-import Logger (initLogger, logMessage, logStop)
-import Metainfo (announce, lengthInBytes, mkMetaInfo, info, name)
-import Peer (getPeers, getPeerResponse, handShakeMsg)
-import Tracker (connect, prepareRequest)
+import FuncTorrent.Bencode (decode, BVal(..))
+import FuncTorrent.Logger (initLogger, logMessage, logStop)
+import FuncTorrent.Metainfo (announce, lengthInBytes, mkMetaInfo, info, name)
+import FuncTorrent.Peer (peers, getPeerResponse, handShakeMsg)
+import FuncTorrent.Tracker (connect, prepareRequest)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e
@@ -53,7 +53,7 @@ main = do
               -- TODO: Write to ~/.functorrent/caches
               writeFile (name (info m) ++ ".cache") body
 
-              let peerResponse = show $ getPeers $ getPeerResponse body
+              let peerResponse = show $ peers $ getPeerResponse body
               logMsg $ "Peers List : " ++ peerResponse
 
               let hsMsgLen = show $ length $ handShakeMsg d' peerId

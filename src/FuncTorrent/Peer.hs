@@ -1,17 +1,22 @@
-module Peer where
+module FuncTorrent.Peer
+    (Peer,
+     PeerResp(..),
+     getPeerResponse,
+     handShakeMsg
+    ) where
 
 import Prelude hiding (lookup, concat, replicate, splitAt)
-
-import Bencode (BVal(..), InfoDict, decode)
 import Data.ByteString.Char8 (ByteString, pack, unpack, concat, replicate, splitAt)
 import Data.ByteString.Lazy (toChunks)
 import Data.Int (Int8)
 import Data.List (intercalate)
 import Data.Map as M ((!), lookup)
-import Tracker (infoHash)
-import Utils (splitN)
 import qualified Data.Binary as Bin (encode)
 import qualified Data.ByteString.Base16 as B16 (encode)
+
+import FuncTorrent.Bencode (BVal(..), InfoDict, decode)
+import FuncTorrent.Tracker (infoHash)
+import FuncTorrent.Utils (splitN)
 
 
 type Address = String
@@ -28,9 +33,6 @@ data PeerResp = PeerResponse { interval :: Maybe Integer
 
 toInt :: String -> Integer
 toInt = read
-
-getPeers :: PeerResp -> [Peer]
-getPeers = peers
 
 getPeerResponse :: ByteString -> PeerResp
 getPeerResponse body = case decode body of
