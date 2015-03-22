@@ -22,23 +22,21 @@ library
                        FuncTorrent.Metainfo,
                        FuncTorrent.Peer,
                        FuncTorrent.Tracker
+
+  other-modules:       FuncTorrent.Utils
   other-extensions:    OverloadedStrings
   hs-source-dirs:      src
   ghc-options:         -Wall -fwarn-incomplete-patterns
   default-language:    Haskell2010
-  build-depends:       HTTP,
-                       HUnit,
-                       base,
+  build-depends:       base,
                        base16-bytestring,
                        binary,
                        bytestring,
                        containers,
                        cryptohash,
-                       doctest,
+                       HTTP,
                        network-uri,
-                       parsec,
-                       tasty,
-                       tasty-hunit
+                       parsec
 
 executable functorrent
   main-is:             Main.hs
@@ -46,26 +44,25 @@ executable functorrent
   hs-source-dirs:      src
   ghc-options:         -Wall -fwarn-incomplete-patterns
   default-language:    Haskell2010
-  build-depends:       HTTP,
-                       base,
+  build-depends:       base,
                        base16-bytestring,
                        binary,
                        bytestring,
                        containers,
                        cryptohash,
-                       doctest,
+                       HTTP,
                        network-uri,
                        parsec
 
-test-suite lisper-test
+test-suite functorrent-test
   type:              exitcode-stdio-1.0
   default-language:  Haskell2010
   hs-source-dirs:    test
   main-is:           Test.hs
-  build-depends:     HUnit,
-                     base,
+  build-depends:     base,
+                     functorrent,
                      bytestring,
                      containers,
-                     functorrent,
+                     doctest,
                      tasty,
                      tasty-hunit
