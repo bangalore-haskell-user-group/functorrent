@@ -1,23 +1,21 @@
-`functorrent' is a bittorrent client.
+# A bittorrent client.
 
 [[https://travis-ci.org/vu3rdd/functorrent][file:https://travis-ci.org/vu3rdd/functorrent.svg?branch=master]]
 
-building
---------
+## building
 
 I suggest using cabal sandbox.
 
-Steps:
+### Steps:
 
 clone the repo; cd functorrent;
 
-1. cabal sandbox init
-2. wget http://www.stackage.org/lts/cabal.config
-3. cabal install --only-dependencies --enable-tests
-4. cabal build # binaries in ./dist/built/functorrent/*
+    $ cabal sandbox init
+    $ wget http://www.stackage.org/lts/cabal.config
+    $ cabal install --only-dependencies --enable-tests
+    $ cabal build # binaries in ./dist/built/functorrent/*
 
-Goals
------
+## Goals
 
 - Become more profient with Haskell.
 - Implement something non-trivial with Haskell (crypto, file operations, network
@@ -27,19 +25,17 @@ Goals
 - doctest and quickcheck tests.
 - Follow Haskell Style Guide - https://github.com/tibbe/haskell-style-guide/blob/master/haskell-style.md
 
-Current Status
---------------
+## Current Status
 
 - can decode torrent files (bencoding)
 - talk to the tracker and get the peer list
 - the `main' program takes a torrent file (in the local file system) as input and
   prints the {ip,port} for each peer, after talking to the tracker.
 
-TODO
-----
+## TODO
 
-- Test suite.
-- Peer protocol.
-- Get the file download working in the simplest possible way.
-- Concurrency (threads per peer)
-- other advanced features of Bit Torrent (like DHT).
+*    Test suite.
+*    Peer protocol.
+*    Get the file download working in the simplest possible way.
+*    Concurrency (threads per peer)
+*    other advanced features of Bit Torrent (like DHT).
