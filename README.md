@@ -1,6 +1,6 @@
 # A bittorrent client.
 
-[[https://travis-ci.org/vu3rdd/functorrent][file:https://travis-ci.org/vu3rdd/functorrent.svg?branch=master]]
+[https://travis-ci.org/vu3rdd/functorrent](file:https://travis-ci.org/vu3rdd/functorrent.svg?branch=master)
 
 ## building
 
