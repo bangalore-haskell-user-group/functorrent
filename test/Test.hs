@@ -9,14 +9,16 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import FuncTorrent.Bencode (decode, BVal(..))
+import FuncTorrent.Peer (Peer(..), PeerResp(..), getPeerResponse)
 
 -- Initial response from tracker
-response :: BVal
-response = Bdict (fromList [
-                   (Bstr "interval", Bint 900),
-                   (Bstr "peers", Bstr "U\EM\201e\200\213%;\FS\236V\206L\NAK\149+\202\154\US\183!\205\169\203\213\210xVkX\213\239\216\205\ESC\STX[\192\163\152.:>\210\240A\ESCWT\250g\161\ESC%X\195\241\192\200\213X\165=\223\SUB\225V\157\234\243\232\191\213)\137\242\200\213[\nT\195\183]@8\249\183\ESCo\202>\DLEG\234\EM\US+~z\225\216D\169\133H\196.\223\135a\177\229\189\ENQ\166]v\251\203\200\148m\141\200\213m\226\236\160\173\156N:\139\154Y\"\188\244/\186\154\219\203V\204o\204\187Pn(b\ESC\ACKD\187\142\217\227\240Gs\139\180\246YF\169#\173\200\213\185\ETX\135\186*\137X\198\224\202\200\213\183\157A\217#\219W\251\189\150\182XWr\202\174\&0i]:\ENQ\DLE\200\211Yf\tE'<^\159\DC3\222=\167_\FS1\176\229\170\217r:\135\SUB\225O\141\162&\139\222\136\169\&2H\214\143\187C\188\151\200\213Oo\218\&2\209\132>K\137\129\200\213\SO\204\DC4\156-PO\141\162\"_\211R\144\192\a\246\232\212\"\231\nP\204_\225\246\221\200\213|)\237fa*"),
-                   (Bstr "peers6", Bstr "")
-                  ])
+response :: PeerResp
+response = PeerResp {
+             interval = Just 900,
+             peers = [Peer "85.25.201.101" 51413, Peer "37.59.28.236" 22222, Peer "76.21.149.43" 51866, Peer "31.183.33.205" 43467, Peer "213.210.120.86" 27480, Peer "213.239.216.205" 6914, Peer "91.192.163.152" 11834, Peer "62.210.240.65" 6999, Peer "84.250.103.161" 6949, Peer "88.195.241.192" 51413, Peer "88.165.61.223" 6881, Peer "86.157.234.243" 59583, Peer "213.41.137.242" 51413, Peer "91.10.84.195" 46941, Peer "64.56.249.183" 7023, Peer "202.62.16.71" 59929, Peer "31.43.126.122" 57816, Peer "68.169.133.72" 50222, Peer "223.135.97.177" 58813, Peer "5.166.93.118" 64459, Peer "200.148.109.141" 51413, Peer "109.226.236.160" 44444, Peer "78.58.139.154" 22818, Peer "188.244.47.186" 39643, Peer "203.86.204.111" 52411, Peer "80.110.40.98" 6918, Peer "68.187.142.217" 58352, Peer "71.115.139.180" 63065, Peer "70.169.35.173" 51413, Peer "185.3.135.186" 10889, Peer "88.198.224.202" 51413, Peer "183.157.65.217" 9179, Peer "87.251.189.150" 46680, Peer "87.114.202.174" 12393, Peer "93.58.5.16" 51411, Peer "89.102.9.69" 10044, Peer "94.159.19.222" 15783, Peer "95.28.49.176" 58794, Peer "217.114.58.135" 6881, Peer "79.141.162.38" 35806, Peer "136.169.50.72" 54927, Peer "187.67.188.151" 51413, Peer "79.111.218.50" 53636, Peer "62.75.137.129" 51413, Peer "14.204.20.156" 11600, Peer "79.141.162.34" 24531, Peer "82.144.192.7" 63208, Peer "212.34.231.10" 20684, Peer "95.225.246.221" 51413, Peer "124.41.237.102" 24874],
+             complete = Nothing,
+             incomplete = Nothing
+           }
 
 -- Parsed .torrent file
 file :: BVal
@@ -44,9 +46,7 @@ testFile = testCase "Should parse regular torrent files" $ do
 testResponse :: TestTree
 testResponse = testCase "Should parse tracker response" $ do
                str <- readFile "./data/debian-7.8.0-amd64-CD-1.iso.cache"
-               case decode str of
-                 Right expected -> expected @?= response
-                 Left _ -> error "Failed parsing test file"
+               response @?= getPeerResponse str
 
 unitTests :: TestTree
 unitTests = testGroup "Unit tests" [testFile, testResponse]

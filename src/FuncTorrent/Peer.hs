@@ -1,5 +1,5 @@
 module FuncTorrent.Peer
-    (Peer,
+    (Peer(..),
      PeerResp(..),
      getPeerResponse,
      handShakeMsg
@@ -23,13 +23,13 @@ type Address = String
 type Port = Integer
 
 data Peer = Peer Address Port
-            deriving (Show)
+            deriving (Show, Eq)
 
-data PeerResp = PeerResponse { interval :: Maybe Integer
-                             , peers :: [Peer]
-                             , complete :: Maybe Integer
-                             , incomplete :: Maybe Integer
-                             } deriving (Show)
+data PeerResp = PeerResp { interval :: Maybe Integer
+                         , peers :: [Peer]
+                         , complete :: Maybe Integer
+                         , incomplete :: Maybe Integer
+                         } deriving (Show, Eq)
 
 toInt :: String -> Integer
 toInt = read
@@ -42,21 +42,21 @@ getPeerResponse body = case decode body of
                               pl = map (\peer -> let (ip', port') = splitAt 4 peer
                                                  in Peer (toIPNum ip') (toPortNum port'))
                                    (splitN 6 peersBS)
-                          in PeerResponse { interval = Just i
-                                          , peers = pl
-                                          , complete = Nothing
-                                          , incomplete = Nothing
-                                          }
+                          in PeerResp { interval = Just i
+                                      , peers = pl
+                                      , complete = Nothing
+                                      , incomplete = Nothing
+                                      }
                           where toPortNum = read . ("0x" ++) . unpack . B16.encode
                                 toIPNum = intercalate "." .
                                           map (show . toInt . ("0x" ++) . unpack) .
                                           splitN 2 . B16.encode
 
-                        _ -> PeerResponse { interval = Nothing
-                                          , peers = []
-                                          , complete = Nothing
-                                          , incomplete = Nothing
-                                          }
+                        _ -> PeerResp { interval = Nothing
+                                      , peers = []
+                                      , complete = Nothing
+                                      , incomplete = Nothing
+                                      }
 
 
 handShakeMsg :: InfoDict -> String -> ByteString
