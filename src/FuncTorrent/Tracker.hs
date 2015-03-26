@@ -9,7 +9,7 @@ import Prelude hiding (lookup)
 import Crypto.Hash.SHA1 (hash)
 import Data.ByteString.Char8 (ByteString, pack, unpack)
 import Data.Char (chr)
-import Data.List (intercalate)
+import Data.List (intercalate, isPrefixOf)
 import Data.Maybe (fromJust)
 import Data.Map as M (Map, (!))
 import Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
@@ -53,5 +53,7 @@ prepareRequest d peer_id len =
   in intercalate "&" [f ++ "=" ++ s | (f,s) <- p]
 
 connect :: Url -> String -> IO ByteString
-connect baseurl qstr = simpleHTTP (defaultGETRequest_ url) >>= getResponseBody
-    where url = fromJust . parseURI $ (baseurl ++ "?" ++ qstr)
+connect baseurl qstr | "http://" `isPrefixOf` baseurl =
+                         simpleHTTP (defaultGETRequest_ url) >>= getResponseBody
+                     | otherwise = error "unsupported tracker protocol"
+  where url = fromJust . parseURI $ (baseurl ++ "?" ++ qstr)
