@@ -6,7 +6,8 @@ module FuncTorrent.Metainfo
      announce,
      lengthInBytes,
      info,
-     name
+     name,
+     getTrackers
     ) where
 
 import Prelude hiding (lookup)
@@ -25,8 +26,8 @@ data Info = Info { pieceLength :: !Integer
                  } deriving (Eq, Show)
 
 data Metainfo = Metainfo { info :: !Info
-                         , announce :: !String
-                         , announceList :: !(Maybe [[String]])
+                         , announce :: !(Maybe String)
+                         , announceList :: ![String]
                          , creationDate :: !(Maybe String)
                          , comment :: !(Maybe String)
                          , createdBy :: !(Maybe String)
@@ -55,20 +56,39 @@ maybeBstrToString (Just s) = let (Bstr bs) = s
 
 mkMetaInfo :: BVal -> Maybe Metainfo
 mkMetaInfo (Bdict m) = let (Just info') = mkInfo $ m ! "info"
-                           (Bstr announce') = m ! "announce"
-                           -- announceList = lookup (Bstr (pack "announce list"))
-                           announceList' = Nothing
+                           announce' = lookup "announce" m
+                           announceList' = lookup "announce-list" m
                            -- creationDate = lookup (Bstr (pack "creation date")) m
                            creationDate' = Nothing
                            comment' = lookup "comment" m
                            createdBy' = lookup "created by" m
                            encoding' = lookup "encoding" m
                        in Just Metainfo { info = info'
-                                        , announce = unpack announce'
-                                        , announceList = announceList'
+                                        , announce = announce'
+                                                     >>= (\(Bstr a) ->
+                                                           Just (unpack a))
+                                        , announceList = getAnnounceList announceList'
                                         , creationDate = creationDate'
                                         , comment = maybeBstrToString comment'
                                         , createdBy = maybeBstrToString createdBy'
                                         , encoding = maybeBstrToString encoding'
                                         }
 mkMetaInfo _ = Nothing
+
+getAnnounceList :: Maybe BVal -> [String]
+getAnnounceList Nothing = []
+getAnnounceList (Just (Bint _)) = []
+getAnnounceList (Just (Bstr _)) = []
+getAnnounceList (Just (Blist l)) = map (\s -> case s of
+                                               (Bstr s') ->  unpack s'
+                                               (Blist s') -> case s' of
+                                                              [Bstr s''] -> unpack s''
+                                                              _ -> ""
+                                               _ -> "") l
+
+getAnnounceList (Just (Bdict _)) = []
+
+getTrackers :: Metainfo -> [String]
+getTrackers m = case (announce m) of
+                 Nothing -> announceList m
+                 Just a -> a : announceList m
