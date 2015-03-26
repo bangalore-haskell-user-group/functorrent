@@ -89,6 +89,6 @@ getAnnounceList (Just (Blist l)) = map (\s -> case s of
 getAnnounceList (Just (Bdict _)) = []
 
 getTrackers :: Metainfo -> [String]
-getTrackers m = case (announce m) of
+getTrackers m = case announce m of
                  Nothing -> announceList m
                  Just a -> a : announceList m
