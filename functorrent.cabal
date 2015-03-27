@@ -52,7 +52,8 @@ executable functorrent
                        cryptohash,
                        HTTP,
                        network-uri,
-                       parsec
+                       parsec,
+                       directory
 
 test-suite functorrent-test
   type:              exitcode-stdio-1.0

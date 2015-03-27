@@ -5,6 +5,7 @@ import Prelude hiding (length, readFile, writeFile)
 import Data.ByteString.Char8 (ByteString, readFile, writeFile, length)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
+import System.Directory (doesFileExist)
 import Text.ParserCombinators.Parsec (ParseError)
 
 import FuncTorrent.Bencode (decode, BVal(..))
@@ -27,7 +28,11 @@ usage = putStrLn "usage: functorrent torrent-file"
 
 parse :: [String] -> IO ByteString
 parse [] = usage >> exit
-parse [a] = readFile a
+parse [a] = do
+  fileExist <- doesFileExist a
+  if fileExist
+    then readFile a
+    else error "file does not exist"
 parse _ = exit
 
 main :: IO ()
