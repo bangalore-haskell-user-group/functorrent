@@ -37,8 +37,8 @@ toInt = read
 getPeerResponse :: ByteString -> PeerResp
 getPeerResponse body = case decode body of
                         Right (Bdict peerM) ->
-                          let (Just (Bint i)) = lookup (Bstr (pack "interval")) peerM
-                              (Bstr peersBS) = peerM ! Bstr (pack "peers")
+                          let (Just (Bint i)) = lookup "interval" peerM
+                              (Bstr peersBS) = peerM ! "peers"
                               pl = map (\peer -> let (ip', port') = splitAt 4 peer
                                                  in Peer (toIPNum ip') (toPortNum port'))
                                    (splitN 6 peersBS)

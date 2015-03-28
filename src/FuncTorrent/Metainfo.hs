@@ -10,7 +10,7 @@ module FuncTorrent.Metainfo
     ) where
 
 import Prelude hiding (lookup)
-import Data.ByteString.Char8 (ByteString, pack, unpack)
+import Data.ByteString.Char8 (ByteString, unpack)
 import Data.Map as M ((!), lookup)
 
 import FuncTorrent.Bencode (BVal(..))
@@ -34,11 +34,11 @@ data Metainfo = Metainfo { info :: !Info
                          } deriving (Eq, Show)
 
 mkInfo :: BVal -> Maybe Info
-mkInfo (Bdict m) = let (Bint pieceLength') = m ! Bstr (pack "piece length")
-                       (Bstr pieces') = m ! Bstr (pack "pieces")
+mkInfo (Bdict m) = let (Bint pieceLength') = m ! "piece length"
+                       (Bstr pieces') = m ! "pieces"
                        private' = Nothing
-                       (Bstr name') = m ! Bstr (pack "name")
-                       (Bint length') = m ! Bstr (pack "length")
+                       (Bstr name') = m ! "name"
+                       (Bint length') = m ! "length"
                        md5sum' = Nothing
                    in Just Info { pieceLength = pieceLength'
                                 , pieces = pieces'
@@ -54,15 +54,15 @@ maybeBstrToString (Just s) = let (Bstr bs) = s
                              in Just (unpack bs)
 
 mkMetaInfo :: BVal -> Maybe Metainfo
-mkMetaInfo (Bdict m) = let (Just info') = mkInfo (m ! Bstr (pack "info"))
-                           (Bstr announce') = m ! Bstr (pack "announce")
+mkMetaInfo (Bdict m) = let (Just info') = mkInfo $ m ! "info"
+                           (Bstr announce') = m ! "announce"
                            -- announceList = lookup (Bstr (pack "announce list"))
                            announceList' = Nothing
                            -- creationDate = lookup (Bstr (pack "creation date")) m
                            creationDate' = Nothing
-                           comment' = lookup (Bstr (pack "comment")) m
-                           createdBy' = lookup (Bstr (pack "created by")) m
-                           encoding' = lookup (Bstr (pack "encoding")) m
+                           comment' = lookup "comment" m
+                           createdBy' = lookup "created by" m
+                           encoding' = lookup "encoding" m
                        in Just Metainfo { info = info'
                                         , announce = unpack announce'
                                         , announceList = announceList'
