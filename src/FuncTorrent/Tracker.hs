@@ -7,17 +7,17 @@ module FuncTorrent.Tracker
 
 import Prelude hiding (lookup)
 import Crypto.Hash.SHA1 (hash)
-import Data.ByteString.Char8 (ByteString, pack, unpack)
+import Data.ByteString.Char8 (ByteString,  unpack)
 import Data.Char (chr)
 import Data.List (intercalate)
 import Data.Maybe (fromJust)
-import Data.Map as M (Map, (!))
+import Data.Map ((!))
 import Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
 import Network.HTTP.Base (urlEncode)
 import Network.URI (parseURI)
 import qualified Data.ByteString.Base16 as B16 (encode)
 
-import FuncTorrent.Bencode (BVal(..), InfoDict, encode)
+import FuncTorrent.Bencode (InfoDict, encode)
 import FuncTorrent.Utils (splitN)
 
 type Url = String
@@ -36,9 +36,8 @@ urlEncodeHash bs = concatMap (encode' . unpack) (splitN 2 bs)
 
         nonSpecialChars = ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ "-_.~"
 
-infoHash :: Map BVal BVal -> ByteString
-infoHash m = let info = m ! Bstr (pack "info")
-             in (hash . pack . encode) info
+infoHash :: InfoDict -> ByteString
+infoHash m = hash . encode $ (m ! "info")
 
 prepareRequest :: InfoDict -> String -> Integer -> String
 prepareRequest d peer_id len =

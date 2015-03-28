@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module FuncTorrent.Bencode
     (BVal(..),
      InfoDict,
@@ -5,8 +6,11 @@ module FuncTorrent.Bencode
      decode
     ) where
 
+import Prelude hiding (length, concat)
+
 import Control.Applicative ((<*))
-import Data.ByteString.Char8 (ByteString, pack, unpack)
+import Data.ByteString (ByteString, length, concat)
+import Data.ByteString.Char8 (unpack, pack)
 import Data.Functor ((<$>))
 import Data.Map.Strict (Map, fromList, keys, (!))
 import Text.ParserCombinators.Parsec
@@ -18,7 +22,7 @@ data BVal = Bint Integer
           | Bdict InfoDict
             deriving (Ord, Eq, Show)
 
-type InfoDict = Map BVal BVal
+type InfoDict = Map String BVal
 
 -- $setup
 -- >>> import Data.Either
@@ -74,11 +78,11 @@ bencInt = do _ <- spaces
 -- >>> parse bencList "Blist" (pack "le")
 -- Right []
 -- >>> parse bencList "Blist" (pack "l4:spam4:eggse")
--- Right ["spam","eggs"]
+-- Right [Bstr "spam",Bstr "eggs"]
 -- >>> parse bencList "Blist" (pack "l4:spami42ee")
--- Right ["spam",42]
+-- Right [Bstr "spam",Bint 42]
 -- >>> parse bencList "Blist" (pack "l4:spam4:eggsli42eee")
--- Right ["spam","eggs",[42]]
+-- Right [Bstr "spam",Bstr "eggs",Blist [Bint 42]]
 bencList :: ParsecBS.Parser [BVal]
 bencList = do _ <- spaces
               between (char 'l') (char 'e') (many bencVal)
@@ -88,16 +92,16 @@ bencList = do _ <- spaces
 -- >>> parse bencDict "Bdict" (pack "de")
 -- Right (fromList [])
 -- >>> parse bencDict "Bdict" (pack "d3:cow3:moo4:spam4:eggse")
--- Right (fromList [("cow","moo"),("spam","eggs")])
+-- Right (fromList [("cow",Bstr "moo"),("spam",Bstr "eggs")])
 -- >>> parse bencDict "Bdict" (pack "d4:spaml1:a1:bee")
--- Right (fromList [("spam",["a","b"])])
+-- Right (fromList [("spam",Blist [Bstr "a",Bstr "b"])])
 -- >>> parse bencDict "Bdict" (pack "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee")
--- Right (fromList [("publisher","bob"),("publisher-webpage","www.example.com"),("publisher.location","home")])
-bencDict :: ParsecBS.Parser (Map BVal BVal)
+-- Right (fromList [("publisher",Bstr "bob"),("publisher-webpage",Bstr "www.example.com"),("publisher.location",Bstr "home")])
+bencDict :: ParsecBS.Parser InfoDict
 bencDict = between (char 'd') (char 'e') $ fromList <$> many kvpair
   where kvpair = do k <- bencStr
                     v <- bencVal
-                    return (Bstr k, v)
+                    return (unpack k, v)
 
 bencVal :: ParsecBS.Parser BVal
 bencVal = Bstr <$> bencStr <|>
@@ -108,8 +112,12 @@ bencVal = Bstr <$> bencStr <|>
 decode :: ByteString -> Either ParseError BVal
 decode = parse bencVal "BVal"
 
--- given an input dict or int or string, encode
--- it into a bencoded bytestring.
+-- Encode BVal into a bencoded ByteString. Inverse of decode
+
+-- TODO: Use builders and lazy byte string to get O(1) concatenation over O(n)
+-- provided by lists.
+
+-- TODO: encode . decode pair might be a good candidate for Quickcheck.
 -- | encode bencoded-values
 --
 -- >>> encode (Bstr (pack ""))
@@ -124,13 +132,10 @@ decode = parse bencVal "BVal"
 -- "l4:spam4:eggse"
 -- >>> encode (Blist [])
 -- "le"
--- >>> encode (Bdict (fromList [(Bstr $ pack "spam", Bstr $ pack "eggs")]))
+-- >>> encode (Bdict (fromList [("spam", Bstr $ pack "eggs")]))
 -- "d4:spam4:eggse"
-encode :: BVal -> String
-encode (Bstr bs) = let s = unpack bs
-                   in show (length s) ++ ":" ++ s
-encode (Bint i) = "i" ++ show i ++ "e"
-encode (Blist xs) = "l" ++ encodeList xs ++ "e"
-  where encodeList = foldr ((++) . encode) ""
-encode (Bdict d) = "d" ++ encodeDict d ++ "e"
-  where encodeDict m = concat [encode k ++ encode (m ! k) | k <- keys m]
+encode :: BVal -> ByteString
+encode (Bstr bs) = pack $ show (length bs) ++ ":" ++ unpack bs
+encode (Bint i) = pack $ "i" ++ show i ++ "e"
+encode (Blist xs) = pack $ "l" ++ unpack (concat $ map encode xs) ++ "e"
+encode (Bdict d) = concat [concat ["d", encode . Bstr . pack $ k , encode (d ! k) , "e"] | k <- keys d]
