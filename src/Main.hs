@@ -2,7 +2,7 @@
 module Main where
 
 import Prelude hiding (length, readFile, writeFile)
-import Data.ByteString.Char8 (ByteString, readFile, writeFile, length)
+import Data.ByteString.Char8 (ByteString, readFile, writeFile, length, unpack)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import System.Directory (doesFileExist)
@@ -11,7 +11,7 @@ import Text.ParserCombinators.Parsec (ParseError)
 import FuncTorrent.Bencode (decode, BVal(..))
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (announce, lengthInBytes, mkMetaInfo, info, name)
-import FuncTorrent.Peer (peers, getPeerResponse, handShakeMsg)
+import FuncTorrent.Peer (peers, mkPeerResp, handShakeMsg)
 import FuncTorrent.Tracker (connect, prepareRequest)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
@@ -53,16 +53,21 @@ main = do
                   (Bdict d') = d
 
               logMsg "Trying to fetch peers: "
-              body <- connect (announce m) (prepareRequest d' peerId len)
-
-              -- TODO: Write to ~/.functorrent/caches
-              writeFile (name (info m) ++ ".cache") body
-
-              let peerResponse = show $ peers $ getPeerResponse body
-              logMsg $ "Peers List : " ++ peerResponse
+              response <- connect (announce m) (prepareRequest d' peerId len)
 
               let hsMsgLen = show $ length $ handShakeMsg d' peerId
               logMsg $ "Hand-shake message length : " ++ hsMsgLen
+
+              -- TODO: Write to ~/.functorrent/caches
+              writeFile (name (info m) ++ ".cache") response
+
+              case decode response of
+                Right trackerInfo ->
+                    case mkPeerResp trackerInfo of
+                      Right peerResp ->
+                          logMsg $ "Peers List : " ++ (show . peers $ peerResp)
+                      Left e -> logMsg $ "Error" ++ unpack e
+                Left e -> logError e logMsg
 
       Left e -> logError e logMsg
     logStop logR

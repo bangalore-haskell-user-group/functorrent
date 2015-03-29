@@ -1,7 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 module FuncTorrent.Peer
     (Peer(..),
      PeerResp(..),
-     getPeerResponse,
+     mkPeerResp,
      handShakeMsg
     ) where
 
@@ -14,7 +15,7 @@ import Data.Map as M ((!), lookup)
 import qualified Data.Binary as Bin (encode)
 import qualified Data.ByteString.Base16 as B16 (encode)
 
-import FuncTorrent.Bencode (BVal(..), InfoDict, decode)
+import FuncTorrent.Bencode (BVal(..), InfoDict)
 import FuncTorrent.Tracker (infoHash)
 import FuncTorrent.Utils (splitN)
 
@@ -34,29 +35,29 @@ data PeerResp = PeerResp { interval :: Maybe Integer
 toInt :: String -> Integer
 toInt = read
 
-getPeerResponse :: ByteString -> PeerResp
-getPeerResponse body = case decode body of
-                        Right (Bdict peerM) ->
-                          let (Just (Bint i)) = lookup "interval" peerM
-                              (Bstr peersBS) = peerM ! "peers"
-                              pl = map (\peer -> let (ip', port') = splitAt 4 peer
-                                                 in Peer (toIPNum ip') (toPortNum port'))
-                                   (splitN 6 peersBS)
-                          in PeerResp { interval = Just i
-                                      , peers = pl
-                                      , complete = Nothing
-                                      , incomplete = Nothing
-                                      }
-                          where toPortNum = read . ("0x" ++) . unpack . B16.encode
-                                toIPNum = intercalate "." .
-                                          map (show . toInt . ("0x" ++) . unpack) .
-                                          splitN 2 . B16.encode
-
-                        _ -> PeerResp { interval = Nothing
-                                      , peers = []
-                                      , complete = Nothing
-                                      , incomplete = Nothing
-                                      }
+mkPeerResp :: BVal -> Either ByteString PeerResp
+mkPeerResp resp =
+    case lookup "failure reason" body of
+      Just (Bstr err) -> Left err
+      Just _ -> Left "Unknown failure"
+      Nothing ->
+          let (Just (Bint i)) = lookup "interval" body
+              (Bstr peersBS) = body ! "peers"
+              pl = map (\peer -> let (ip', port') = splitAt 4 peer
+                                 in Peer (toIPNum ip') (toPortNum port'))
+                   (splitN 6 peersBS)
+          in Right PeerResp {
+                   interval = Just i
+                 , peers = pl
+                 , complete = Nothing
+                 , incomplete = Nothing
+                 }
+    where
+      (Bdict body) = resp
+      toPortNum = read . ("0x" ++) . unpack . B16.encode
+      toIPNum = intercalate "." .
+                map (show . toInt . ("0x" ++) . unpack) .
+                    splitN 2 . B16.encode
 
 
 handShakeMsg :: InfoDict -> String -> ByteString

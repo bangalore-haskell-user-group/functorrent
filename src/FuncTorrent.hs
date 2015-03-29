@@ -9,7 +9,6 @@ module FuncTorrent
      connect,
      decode,
      encode,
-     getPeerResponse,
      handShakeMsg,
      info,
      infoHash,
@@ -19,6 +18,7 @@ module FuncTorrent
      logStop,
      mkInfo,
      mkMetaInfo,
+     mkPeerResp,
      name,
      prepareRequest,
      urlEncodeHash
