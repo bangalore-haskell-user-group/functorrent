@@ -34,9 +34,12 @@ library
                        bytestring,
                        containers,
                        cryptohash,
+                       directory,
                        HTTP,
                        network-uri,
-                       parsec
+                       parsec,
+                       tasty,
+                       tasty-hunit
 
 executable functorrent
   main-is:             Main.hs
@@ -50,10 +53,10 @@ executable functorrent
                        bytestring,
                        containers,
                        cryptohash,
+                       directory,
                        HTTP,
                        network-uri,
-                       parsec,
-                       directory
+                       parsec
 
 test-suite functorrent-test
   type:              exitcode-stdio-1.0
@@ -64,10 +67,10 @@ test-suite functorrent-test
                      functorrent,
                      bytestring,
                      containers,
+                     directory,
                      doctest,
                      tasty,
-                     tasty-hunit,
-                     directory
+                     tasty-hunit
 
 test-suite functorrent-hlint
   type:              exitcode-stdio-1.0
