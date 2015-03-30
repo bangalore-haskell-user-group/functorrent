@@ -10,7 +10,7 @@ import Text.ParserCombinators.Parsec (ParseError)
 
 import FuncTorrent.Bencode (decode, BVal(..))
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
-import FuncTorrent.Metainfo (lengthInBytes, mkMetaInfo, info, name, getTrackers)
+import FuncTorrent.Metainfo (lengthInBytes, mkMetaInfo, info, name, announceList)
 import FuncTorrent.Peer (peers, mkPeerResp, handShakeMsg)
 import FuncTorrent.Tracker (connect, prepareRequest)
 
@@ -51,7 +51,7 @@ main = do
 
               let len = lengthInBytes $ info m
                   (Bdict d') = d
-                  trackers = getTrackers m
+                  trackers = announceList m
 
               logMsg "Trying to fetch peers: "
               response <- connect (head trackers) (prepareRequest d' peerId len)

@@ -2,6 +2,7 @@
 module FuncTorrent.Bencode
     (BVal(..),
      InfoDict,
+     bstrToString,
      encode,
      decode
     ) where
@@ -139,3 +140,8 @@ encode (Bstr bs) = pack $ show (length bs) ++ ":" ++ unpack bs
 encode (Bint i) = pack $ "i" ++ show i ++ "e"
 encode (Blist xs) = pack $ "l" ++ unpack (concat $ map encode xs) ++ "e"
 encode (Bdict d) = concat [concat ["d", encode . Bstr . pack $ k , encode (d ! k) , "e"] | k <- keys d]
+
+-- getters
+bstrToString :: BVal -> Maybe String
+bstrToString (Bstr s) = Just $ unpack s
+bstrToString _ = Nothing

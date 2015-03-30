@@ -1,20 +1,20 @@
 module FuncTorrent.Metainfo
     (Info,
      Metainfo,
+     announceList,
      mkMetaInfo,
      mkInfo,
-     announce,
      lengthInBytes,
      info,
      name,
-     getTrackers
     ) where
 
 import Prelude hiding (lookup)
 import Data.ByteString.Char8 (ByteString, unpack)
 import Data.Map as M ((!), lookup)
+import Data.Maybe (maybeToList)
 
-import FuncTorrent.Bencode (BVal(..))
+import FuncTorrent.Bencode (BVal(..), bstrToString)
 
 -- only single file mode supported for the time being.
 data Info = Info { pieceLength :: !Integer
@@ -26,7 +26,6 @@ data Info = Info { pieceLength :: !Integer
                  } deriving (Eq, Show)
 
 data Metainfo = Metainfo { info :: !Info
-                         , announce :: !(Maybe String)
                          , announceList :: ![String]
                          , creationDate :: !(Maybe String)
                          , comment :: !(Maybe String)
@@ -64,10 +63,8 @@ mkMetaInfo (Bdict m) = let (Just info') = mkInfo $ m ! "info"
                            createdBy' = lookup "created by" m
                            encoding' = lookup "encoding" m
                        in Just Metainfo { info = info'
-                                        , announce = announce'
-                                                     >>= (\(Bstr a) ->
-                                                           Just (unpack a))
-                                        , announceList = getAnnounceList announceList'
+                                        , announceList = maybeToList (announce' >>= bstrToString)
+                                                         ++ getAnnounceList announceList'
                                         , creationDate = creationDate'
                                         , comment = maybeBstrToString comment'
                                         , createdBy = maybeBstrToString createdBy'
@@ -87,8 +84,3 @@ getAnnounceList (Just (Blist l)) = map (\s -> case s of
                                                _ -> "") l
 
 getAnnounceList (Just (Bdict _)) = []
-
-getTrackers :: Metainfo -> [String]
-getTrackers m = case announce m of
-                 Nothing -> announceList m
-                 Just a -> a : announceList m

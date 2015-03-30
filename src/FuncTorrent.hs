@@ -5,7 +5,7 @@ module FuncTorrent
      Metainfo,
      Peer,
      PeerResp(..),
-     announce,
+     announceList,
      connect,
      decode,
      encode,
