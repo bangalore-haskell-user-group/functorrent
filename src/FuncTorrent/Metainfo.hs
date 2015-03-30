@@ -12,6 +12,7 @@ module FuncTorrent.Metainfo
 import Prelude hiding (lookup)
 import Data.ByteString.Char8 (ByteString, unpack)
 import Data.Map as M ((!), lookup)
+import Data.Maybe (maybeToList)
 
 import FuncTorrent.Bencode (BVal(..), bstrToString)
 
@@ -70,10 +71,6 @@ mkMetaInfo (Bdict m) = let (Just info') = mkInfo $ m ! "info"
                                         , encoding = maybeBstrToString encoding'
                                         }
 mkMetaInfo _ = Nothing
-
-maybeToList :: Maybe a -> [a]
-maybeToList  Nothing   = []
-maybeToList  (Just x)  = [x]
 
 getAnnounceList :: Maybe BVal -> [String]
 getAnnounceList Nothing = []
