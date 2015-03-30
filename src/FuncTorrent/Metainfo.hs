@@ -49,9 +49,8 @@ mkInfo (Bdict m) = let (Bint pieceLength') = m ! "piece length"
 mkInfo _ = Nothing
 
 maybeBstrToString :: Maybe BVal -> Maybe String
-maybeBstrToString Nothing = Nothing
-maybeBstrToString (Just s) = let (Bstr bs) = s
-                             in Just (unpack bs)
+maybeBstrToString (Just (Bstr bs)) = Just $ unpack bs
+maybeBstrToString _ = Nothing
 
 mkMetaInfo :: BVal -> Maybe Metainfo
 mkMetaInfo (Bdict m) = let (Just info') = mkInfo $ m ! "info"
