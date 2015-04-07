@@ -10,7 +10,7 @@ import Text.ParserCombinators.Parsec (ParseError)
 
 import FuncTorrent.Bencode (decode, BVal(..))
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
-import FuncTorrent.Metainfo (lengthInBytes, mkMetaInfo, info, name, announceList)
+import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
 import FuncTorrent.Peer (peers, mkPeerResp, handShakeMsg)
 import FuncTorrent.Tracker (connect, prepareRequest)
 

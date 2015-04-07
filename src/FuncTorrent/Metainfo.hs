@@ -1,12 +1,8 @@
 module FuncTorrent.Metainfo
-    (Info,
-     Metainfo,
-     announceList,
+    (Info(..),
+     Metainfo(..),
      mkMetaInfo,
-     mkInfo,
-     lengthInBytes,
-     info,
-     name,
+     mkInfo
     ) where
 
 import Prelude hiding (lookup)
