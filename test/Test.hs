@@ -9,6 +9,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import FuncTorrent.Bencode (decode, BVal(..))
+import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
 import FuncTorrent.Peer (Peer(..), PeerResp(..), mkPeerResp)
 
 -- Parsed .torrent file
@@ -23,12 +24,38 @@ file = Bdict (fromList [
                                 ("piece length", Bint 262144),
                                 ("pieces", Bstr "\bW\196\168g\178\198=\156\204\221M\242\207\DC1\159\ETB~\241H")]))])
 
+moby :: Metainfo
+moby = Metainfo {
+         info = Info {
+           pieceLength = 262144,
+           pieces = "\bW\196\168g\178\198=\156\204\221M\242\207\DC1\159\ETB~\241H",
+           private = Nothing,
+           name = "moby_dick.txt",
+           lengthInBytes = 31690,
+           md5sum = Nothing
+         },
+         announceList = ["http://carrot.cs.swarthmore.edu:6969"],
+         creationDate = Nothing,
+         comment = Nothing,
+         createdBy = Just "Enhanced-CTorrent/dnh3.3.2",
+         encoding = Nothing
+       }
+
 testFile :: TestTree
-testFile = testCase "Should parse regular torrent files" $ do
+testFile = testCase "Should parse valid torrent files" $ do
                str <- readFile "./data/moby_dick.txt.torrent"
                case decode str of
                  Right expected -> expected @?= file
                  Left _ -> error "Failed parsing test file"
+
+
+testMkMetaInfo :: TestTree
+testMkMetaInfo = testCase "Should mkInfo valid torrent files" $ do
+                   str <- readFile "./data/moby_dick.txt.torrent"
+                   case decode str of
+                     Right expected -> mkMetaInfo expected @?= Just moby
+                     Left _ -> error "Failed parsing test file"
+
 
 testResponse1 :: TestTree
 testResponse1 = testCase "Should parse valid tracker response" $ do
@@ -57,7 +84,8 @@ testResponse2 = testCase "Should parse invalid tracker response" $ do
 
 
 unitTests :: TestTree
-unitTests = testGroup "Unit tests" [testFile, testResponse1, testResponse2]
+unitTests = testGroup "Unit tests" [testFile, testMkMetaInfo, testResponse1,
+                                            testResponse2]
 
 tests :: TestTree
 tests = testGroup "Tests" [unitTests]
