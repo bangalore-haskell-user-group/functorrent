@@ -1,26 +1,73 @@
+{-# LANGUAGE OverloadedStrings #-}
 module FuncTorrent.Tracker
-    (connect,
-     infoHash,
+    (TrackerResponse(..),
+     connect,
+     mkTrackerResponse,
      prepareRequest,
      urlEncodeHash
     ) where
 
-import Prelude hiding (lookup)
-import Crypto.Hash.SHA1 (hash)
-import Data.ByteString.Char8 (ByteString,  unpack)
+import Prelude hiding (lookup, concat, replicate, splitAt)
+import Data.ByteString.Char8 (ByteString, unpack, splitAt)
 import Data.Char (chr)
 import Data.List (intercalate)
+import Data.Map as M (lookup)
 import Data.Maybe (fromJust)
-import Data.Map ((!))
 import Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
 import Network.HTTP.Base (urlEncode)
 import Network.URI (parseURI)
 import qualified Data.ByteString.Base16 as B16 (encode)
 
-import FuncTorrent.Bencode (InfoDict, encode)
+import FuncTorrent.Bencode (BVal(..), InfoDict)
+import FuncTorrent.Metainfo (infoHash)
+import FuncTorrent.Peer (Peer(..))
 import FuncTorrent.Utils (splitN)
 
+
+-- | Tracker response
+data TrackerResponse = TrackerResponse {
+      interval :: Maybe Integer
+    , peers :: [Peer]
+    , complete :: Maybe Integer
+    , incomplete :: Maybe Integer
+    } deriving (Show, Eq)
+
 type Url = String
+
+-- | Deserialize tracker response
+mkTrackerResponse :: BVal -> Either ByteString TrackerResponse
+mkTrackerResponse resp =
+    case lookup "failure reason" body of
+      Just (Bstr err) -> Left err
+      Just _ -> Left "Unknown failure"
+      Nothing ->
+          let (Just (Bint i)) = lookup "interval" body
+              (Just (Bstr peersBS)) = lookup "peers" body
+              pl = map makePeer (splitN 6 peersBS)
+          in Right TrackerResponse {
+                   interval = Just i
+                 , peers = pl
+                 , complete = Nothing
+                 , incomplete = Nothing
+                 }
+    where
+      (Bdict body) = resp
+
+      toInt :: String -> Integer
+      toInt = read
+
+      toPort :: ByteString -> Integer
+      toPort = read . ("0x" ++) . unpack . B16.encode
+
+      toIP :: ByteString -> String
+      toIP = intercalate "." .
+             map (show . toInt . ("0x" ++) . unpack) .
+                 splitN 2 . B16.encode
+
+      makePeer :: ByteString -> Peer
+      makePeer peer = Peer (toIP ip') (toPort port')
+          where (ip', port') = splitAt 4 peer
+
 
 -- | urlEncodeHash
 --
@@ -35,9 +82,6 @@ urlEncodeHash bs = concatMap (encode' . unpack) (splitN 2 bs)
                        | otherwise = "%" ++ [c1] ++ [c2]
 
         nonSpecialChars = ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ "-_.~"
-
-infoHash :: InfoDict -> ByteString
-infoHash m = hash . encode $ (m ! "info")
 
 prepareRequest :: InfoDict -> String -> Integer -> String
 prepareRequest d peer_id len =

@@ -4,7 +4,7 @@ module FuncTorrent
      InfoDict,
      Metainfo,
      Peer,
-     PeerResp(..),
+     TrackerResponse(..),
      announceList,
      connect,
      decode,
@@ -18,7 +18,7 @@ module FuncTorrent
      logStop,
      mkInfo,
      mkMetaInfo,
-     mkPeerResp,
+     mkTrackerResponse,
      name,
      prepareRequest,
      urlEncodeHash
