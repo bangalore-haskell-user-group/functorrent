@@ -16,7 +16,6 @@ import Control.Concurrent
 --
 -- The MVar in stop is just to ensure the logger thread executes completely
 -- Before exiting the main application.
---
 data Logger = Logger (MVar LogCommand)
 data LogCommand = Message String | Stop (MVar ())
 

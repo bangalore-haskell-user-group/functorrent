@@ -11,14 +11,13 @@ import Data.ByteString.Lazy (toChunks)
 import Data.Int (Int8)
 import qualified Data.Binary as Bin (encode)
 
-import FuncTorrent.Bencode (InfoDict)
-import FuncTorrent.Metainfo (infoHash)
+import FuncTorrent.Metainfo (Metainfo(..))
 
 -- | Peer is a IP address, port tuple
 data Peer = Peer String Integer
             deriving (Show, Eq)
 
-handShakeMsg :: InfoDict -> String -> ByteString
+handShakeMsg :: Metainfo -> String -> ByteString
 handShakeMsg m peer_id = concat [pstrlen, pstr, reserved, infoH, peerID]
     where pstrlen = concat $ toChunks $ Bin.encode (19 :: Int8)
           pstr = pack "BitTorrent protocol"

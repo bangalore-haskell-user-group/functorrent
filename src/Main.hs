@@ -1,18 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Prelude hiding (length, readFile, writeFile)
+import Prelude hiding (log, length, readFile, writeFile)
 import Data.ByteString.Char8 (ByteString, readFile, writeFile, length, unpack)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import System.Directory (doesFileExist)
 import Text.ParserCombinators.Parsec (ParseError)
 
-import FuncTorrent.Bencode (decode, BVal(..))
+import FuncTorrent.Bencode (decode)
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
 import FuncTorrent.Peer (handShakeMsg)
-import FuncTorrent.Tracker (connect, prepareRequest, peers, mkTrackerResponse)
+import FuncTorrent.Tracker (connect, peers, mkTrackerResponse)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e
@@ -39,25 +39,24 @@ main :: IO ()
 main = do
     args <- getArgs
     logR <- initLogger
-    let logMsg = logMessage logR
-    logMsg $ "Parsing input file: " ++ concat args
+    let log = logMessage logR
+    log "Starting up functorrent"
+    log $ "Parsing input file " ++ concat args
     torrentStr <- parse args
     case decode torrentStr of
       Right d ->
           case mkMetaInfo d of
-            Nothing -> logMsg "parse error"
+            Nothing -> log "Unable to make meta info file"
             Just m -> do
-              logMsg "Input File OK"
+              log "Input File OK"
+              log $ "Downloading file : " ++ name (info m)
+              log "Trying to fetch peers"
 
-              let len = lengthInBytes $ info m
-                  (Bdict d') = d
-                  trackers = announceList m
+              log $ "Trackers: " ++ head (announceList m)
+              response <- connect m peerId
 
-              logMsg "Trying to fetch peers: "
-              response <- connect (head trackers) (prepareRequest d' peerId len)
-
-              let hsMsgLen = show $ length $ handShakeMsg d' peerId
-              logMsg $ "Hand-shake message length : " ++ hsMsgLen
+              let hsMsgLen = show $ length $ handShakeMsg m peerId
+              log $ "Hand-shake message length : " ++ hsMsgLen
 
               -- TODO: Write to ~/.functorrent/caches
               writeFile (name (info m) ++ ".cache") response
@@ -66,9 +65,9 @@ main = do
                 Right trackerInfo ->
                     case mkTrackerResponse trackerInfo of
                       Right peerResp ->
-                          logMsg $ "Peers List : " ++ (show . peers $ peerResp)
-                      Left e -> logMsg $ "Error" ++ unpack e
-                Left e -> logError e logMsg
+                          log $ "Peers List : " ++ (show . peers $ peerResp)
+                      Left e -> log $ "Error" ++ unpack e
+                Left e -> logError e log
 
-      Left e -> logError e logMsg
+      Left e -> logError e log
     logStop logR

@@ -1,7 +1,6 @@
 module FuncTorrent.Metainfo
     (Info(..),
      Metainfo(..),
-     infoHash,
      mkInfo,
      mkMetaInfo
     ) where
@@ -12,7 +11,7 @@ import Data.Map as M ((!), lookup)
 import Crypto.Hash.SHA1 (hash)
 import Data.Maybe (maybeToList)
 
-import FuncTorrent.Bencode (BVal(..), InfoDict, encode, bstrToString, bValToInteger)
+import FuncTorrent.Bencode (BVal(..), encode, bstrToString, bValToInteger)
 
 -- only single file mode supported for the time being.
 data Info = Info { pieceLength :: !Integer
@@ -29,6 +28,7 @@ data Metainfo = Metainfo { info :: !Info
                          , comment :: !(Maybe String)
                          , createdBy :: !(Maybe String)
                          , encoding :: !(Maybe String)
+                         , infoHash :: !ByteString
                          } deriving (Eq, Show)
 
 mkInfo :: BVal -> Maybe Info
@@ -63,7 +63,9 @@ mkMetaInfo (Bdict m)  =
            , comment      = bstrToString  =<< comment'
            , createdBy    = bstrToString  =<< createdBy'
            , encoding     = bstrToString  =<< encoding'
+           , infoHash     = hash . encode $ (m ! "info")
         }
+
 mkMetaInfo _ = Nothing
 
 getAnnounceList :: Maybe BVal -> [String]
@@ -78,9 +80,3 @@ getAnnounceList (Just (Blist l)) = map (\s -> case s of
                                                _ -> "") l
 
 getAnnounceList (Just (Bdict _)) = []
-
--- | Info hash is urlencoded 20 byte SHA1 hash of the value of the info key from
--- the Metainfo file. Note that the value will be a bencoded dictionary, given
--- the definition of the info key above. TODO: `Metainfo -> ByteString`
-infoHash :: InfoDict -> ByteString
-infoHash m = hash . encode $ (m ! "info")

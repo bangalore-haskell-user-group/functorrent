@@ -1,14 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
-module FuncTorrent.Bencode (
-      BVal(..)
-    , InfoDict
-    , bstrToString
-    , bValToInteger
-    , bValToInfoDict
+module FuncTorrent.Bencode
+    (BVal(..)
     , bValToBList
     , bValToBstr
-    , encode
+    , bValToInfoDict
+    , bValToInteger
+    , bstrToString
     , decode
+    , encode
     ) where
 
 import Prelude hiding (length, concat)
@@ -24,7 +23,7 @@ import qualified Text.Parsec.ByteString as ParsecBS
 data BVal = Bint Integer
           | Bstr ByteString
           | Blist [BVal]
-          | Bdict InfoDict
+          | Bdict (Map String BVal)
             deriving (Ord, Eq, Show)
 
 -- getters
@@ -40,14 +39,12 @@ bValToBList :: BVal    -> Maybe [BVal]
 bValToBList (Blist lst) = Just lst
 bValToBList _           = Nothing
 
-bValToInfoDict :: BVal     -> Maybe InfoDict
+bValToInfoDict :: BVal     -> Maybe (Map String BVal)
 bValToInfoDict (Bdict dict) = Just dict
 bValToInfoDict _            = Nothing
 
 bstrToString :: BVal -> Maybe String
 bstrToString bval     = unpack <$> bValToBstr bval
-
-type InfoDict = Map String BVal
 
 -- $setup
 -- >>> import Data.Either
@@ -122,7 +119,7 @@ bencList = do _ <- spaces
 -- Right (fromList [("spam",Blist [Bstr "a",Bstr "b"])])
 -- >>> parse bencDict "Bdict" (pack "d9:publisher3:bob17:publisher-webpage15:www.example.com18:publisher.location4:homee")
 -- Right (fromList [("publisher",Bstr "bob"),("publisher-webpage",Bstr "www.example.com"),("publisher.location",Bstr "home")])
-bencDict :: ParsecBS.Parser InfoDict
+bencDict :: ParsecBS.Parser (Map String BVal)
 bencDict = between (char 'd') (char 'e') $ fromList <$> many kvpair
   where kvpair = do k <- bencStr
                     v <- bencVal
