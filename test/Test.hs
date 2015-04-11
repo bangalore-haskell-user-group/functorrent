@@ -39,7 +39,7 @@ hello = Metainfo {
             md5sum = Nothing
           },
           announceList = ["http://9.rarbg.com:2710/announce"],
-          creationDate = Nothing,
+          creationDate = Just 1428717851,
           comment = Just "hello world",
           createdBy = Just "Jaseem Abid",
           encoding = Just "UTF-8"

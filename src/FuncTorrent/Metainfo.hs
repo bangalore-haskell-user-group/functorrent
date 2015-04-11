@@ -25,7 +25,7 @@ data Info = Info { pieceLength :: !Integer
 
 data Metainfo = Metainfo { info :: !Info
                          , announceList :: ![String]
-                         , creationDate :: !(Maybe String)
+                         , creationDate :: !(Maybe Integer)
                          , comment :: !(Maybe String)
                          , createdBy :: !(Maybe String)
                          , encoding :: !(Maybe String)
@@ -50,19 +50,22 @@ maybeBstrToString :: Maybe BVal -> Maybe String
 maybeBstrToString (Just (Bstr bs)) = Just $ unpack bs
 maybeBstrToString _ = Nothing
 
+maybeBstrToInteger :: Maybe BVal -> Maybe Integer
+maybeBstrToInteger (Just (Bint bs)) = Just  bs
+maybeBstrToInteger _ = Nothing
+
 mkMetaInfo :: BVal -> Maybe Metainfo
 mkMetaInfo (Bdict m) = let (Just info') = mkInfo $ m ! "info"
                            announce' = lookup "announce" m
                            announceList' = lookup "announce-list" m
-                           -- creationDate = lookup (Bstr (pack "creation date")) m
-                           creationDate' = Nothing
+                           creationDate' = lookup "creation date" m
                            comment' = lookup "comment" m
                            createdBy' = lookup "created by" m
                            encoding' = lookup "encoding" m
                        in Just Metainfo { info = info'
                                         , announceList = maybeToList (announce' >>= bstrToString)
                                                          ++ getAnnounceList announceList'
-                                        , creationDate = creationDate'
+                                        , creationDate = maybeBstrToInteger creationDate'
                                         , comment = maybeBstrToString comment'
                                         , createdBy = maybeBstrToString createdBy'
                                         , encoding = maybeBstrToString encoding'
