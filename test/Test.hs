@@ -16,35 +16,38 @@ import FuncTorrent.Tracker (TrackerResponse(..), peers, mkTrackerResponse)
 -- Parsed .torrent file
 file :: BVal
 file = Bdict (fromList [
-               ("announce", Bstr "http://carrot.cs.swarthmore.edu:6969"),
-               ("created by", Bstr "Enhanced-CTorrent/dnh3.3.2"),
-               ("creation date", Bint 1352142460),
-               ("info", Bdict (fromList [
-                                ("length", Bint 31690),
-                                ("name", Bstr "moby_dick.txt"),
-                                ("piece length", Bint 262144),
-                                ("pieces", Bstr "\bW\196\168g\178\198=\156\204\221M\242\207\DC1\159\ETB~\241H")]))])
+               ("announce",Bstr "http://9.rarbg.com:2710/announce"),
+               ("comment",Bstr "hello world"),
+               ("created by",Bstr "Jaseem Abid"),
+               ("creation date",Bint 1428717851),
+               ("encoding",Bstr "UTF-8"),
+               ("info",Bdict (fromList [
+                               ("length",Bint 12),
+                               ("name",Bstr "hello.txt"),
+                               ("piece length",Bint 32768),
+                               ("pieces",Bstr "\"Ycc\179\222@\176o\152\US\184]\130\&1.\140\SO\213\DC1"),
+                               ("private",Bint 0)]))])
 
-moby :: Metainfo
-moby = Metainfo {
-         info = Info {
-           pieceLength = 262144,
-           pieces = "\bW\196\168g\178\198=\156\204\221M\242\207\DC1\159\ETB~\241H",
-           private = Nothing,
-           name = "moby_dick.txt",
-           lengthInBytes = 31690,
-           md5sum = Nothing
-         },
-         announceList = ["http://carrot.cs.swarthmore.edu:6969"],
-         creationDate = Nothing,
-         comment = Nothing,
-         createdBy = Just "Enhanced-CTorrent/dnh3.3.2",
-         encoding = Nothing
-       }
+hello :: Metainfo
+hello = Metainfo {
+          info = Info {
+            pieceLength = 32768,
+            pieces = "\"Ycc\179\222@\176o\152\US\184]\130\&1.\140\SO\213\DC1",
+            private = Nothing,
+            name = "hello.txt",
+            lengthInBytes = 12,
+            md5sum = Nothing
+          },
+          announceList = ["http://9.rarbg.com:2710/announce"],
+          creationDate = Nothing,
+          comment = Just "hello world",
+          createdBy = Just "Jaseem Abid",
+          encoding = Just "UTF-8"
+        }
 
 testFile :: TestTree
 testFile = testCase "Should parse valid torrent files" $ do
-               str <- readFile "./data/moby_dick.txt.torrent"
+               str <- readFile "./data/hello.txt.torrent"
                case decode str of
                  Right expected -> expected @?= file
                  Left _ -> error "Failed parsing test file"
@@ -52,11 +55,10 @@ testFile = testCase "Should parse valid torrent files" $ do
 
 testMkMetaInfo :: TestTree
 testMkMetaInfo = testCase "Should mkInfo valid torrent files" $ do
-                   str <- readFile "./data/moby_dick.txt.torrent"
+                   str <- readFile "./data/hello.txt.torrent"
                    case decode str of
-                     Right expected -> mkMetaInfo expected @?= Just moby
+                     Right expected -> mkMetaInfo expected @?= Just hello
                      Left _ -> error "Failed parsing test file"
-
 
 testResponse1 :: TestTree
 testResponse1 = testCase "Should parse valid tracker response" $ do
