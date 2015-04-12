@@ -12,7 +12,7 @@ import Data.Map as M ((!), lookup)
 import Crypto.Hash.SHA1 (hash)
 import Data.Maybe (maybeToList)
 
-import FuncTorrent.Bencode (BVal(..), InfoDict, encode, bstrToString)
+import FuncTorrent.Bencode (BVal(..), InfoDict, encode, bstrToString, bValToInteger)
 
 -- only single file mode supported for the time being.
 data Info = Info { pieceLength :: !Integer
@@ -46,30 +46,24 @@ mkInfo (Bdict m) = let (Bint pieceLength') = m ! "piece length"
                                 , md5sum = md5sum'}
 mkInfo _ = Nothing
 
-maybeBstrToString :: Maybe BVal -> Maybe String
-maybeBstrToString (Just (Bstr bs)) = Just $ unpack bs
-maybeBstrToString _ = Nothing
-
-maybeBstrToInteger :: Maybe BVal -> Maybe Integer
-maybeBstrToInteger (Just (Bint bs)) = Just  bs
-maybeBstrToInteger _ = Nothing
-
-mkMetaInfo :: BVal -> Maybe Metainfo
-mkMetaInfo (Bdict m) = let (Just info') = mkInfo $ m ! "info"
-                           announce' = lookup "announce" m
-                           announceList' = lookup "announce-list" m
-                           creationDate' = lookup "creation date" m
-                           comment' = lookup "comment" m
-                           createdBy' = lookup "created by" m
-                           encoding' = lookup "encoding" m
-                       in Just Metainfo { info = info'
-                                        , announceList = maybeToList (announce' >>= bstrToString)
-                                                         ++ getAnnounceList announceList'
-                                        , creationDate = maybeBstrToInteger creationDate'
-                                        , comment = maybeBstrToString comment'
-                                        , createdBy = maybeBstrToString createdBy'
-                                        , encoding = maybeBstrToString encoding'
-                                        }
+mkMetaInfo :: BVal   -> Maybe Metainfo
+mkMetaInfo (Bdict m)  =
+    let (Just info')  = mkInfo $ m ! "info"
+        announce'     = lookup "announce" m
+        announceList' = lookup "announce-list" m
+        creationDate' = lookup "creation date" m
+        comment'      = lookup "comment" m
+        createdBy'    = lookup "created by" m
+        encoding'     = lookup "encoding" m
+    in Just Metainfo {
+             info         = info'
+           , announceList = maybeToList (announce' >>= bstrToString)
+                            ++ getAnnounceList announceList'
+           , creationDate = bValToInteger =<< creationDate'
+           , comment      = bstrToString  =<< comment'
+           , createdBy    = bstrToString  =<< createdBy'
+           , encoding     = bstrToString  =<< encoding'
+        }
 mkMetaInfo _ = Nothing
 
 getAnnounceList :: Maybe BVal -> [String]

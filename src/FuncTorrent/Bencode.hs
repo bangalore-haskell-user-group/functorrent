@@ -1,10 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
-module FuncTorrent.Bencode
-    (BVal(..),
-     InfoDict,
-     bstrToString,
-     encode,
-     decode
+module FuncTorrent.Bencode (
+      BVal(..)
+    , InfoDict
+    , bstrToString
+    , bValToInteger
+    , bValToInfoDict
+    , bValToBList
+    , bValToBstr
+    , encode
+    , decode
     ) where
 
 import Prelude hiding (length, concat)
@@ -22,6 +26,26 @@ data BVal = Bint Integer
           | Blist [BVal]
           | Bdict InfoDict
             deriving (Ord, Eq, Show)
+
+-- getters
+bValToInteger :: BVal -> Maybe Integer
+bValToInteger (Bint x) = Just x
+bValToInteger _        = Nothing
+
+bValToBstr :: BVal  -> Maybe ByteString
+bValToBstr (Bstr bs) = Just bs
+bValToBstr _         = Nothing
+
+bValToBList :: BVal    -> Maybe [BVal]
+bValToBList (Blist lst) = Just lst
+bValToBList _           = Nothing
+
+bValToInfoDict :: BVal     -> Maybe InfoDict
+bValToInfoDict (Bdict dict) = Just dict
+bValToInfoDict _            = Nothing
+
+bstrToString :: BVal -> Maybe String
+bstrToString bval     = unpack <$> bValToBstr bval
 
 type InfoDict = Map String BVal
 
@@ -140,8 +164,3 @@ encode (Bstr bs) = pack $ show (length bs) ++ ":" ++ unpack bs
 encode (Bint i) = pack $ "i" ++ show i ++ "e"
 encode (Blist xs) = pack $ "l" ++ unpack (concat $ map encode xs) ++ "e"
 encode (Bdict d) = concat [concat ["d", encode . Bstr . pack $ k , encode (d ! k) , "e"] | k <- keys d]
-
--- getters
-bstrToString :: BVal -> Maybe String
-bstrToString (Bstr s) = Just $ unpack s
-bstrToString _ = Nothing
