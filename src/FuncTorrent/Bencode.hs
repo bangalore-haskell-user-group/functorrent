@@ -159,5 +159,8 @@ decode = parse bencVal "BVal"
 encode :: BVal -> ByteString
 encode (Bstr bs) = pack $ show (length bs) ++ ":" ++ unpack bs
 encode (Bint i) = pack $ "i" ++ show i ++ "e"
-encode (Blist xs) = pack $ "l" ++ unpack (concat $ map encode xs) ++ "e"
-encode (Bdict d) = concat [concat ["d", encode . Bstr . pack $ k , encode (d ! k) , "e"] | k <- keys d]
+encode (Blist xs) = concat ["l", concat $ map encode xs, "e"]
+encode (Bdict d) = concat ["d", concat kvlist, "e"]
+    where
+      kvlist :: [ByteString]
+      kvlist = [concat [encode . Bstr . pack $ k , encode (d ! k)] | k <- keys d]
