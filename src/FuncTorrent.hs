@@ -1,27 +1,19 @@
 module FuncTorrent
     (BVal(..),
-     Info,
-     InfoDict,
-     Metainfo,
+     Info(..),
+     Metainfo(..),
      Peer,
      TrackerResponse(..),
-     announceList,
      connect,
      decode,
      encode,
      handShakeMsg,
-     info,
-     infoHash,
      initLogger,
-     lengthInBytes,
      logMessage,
      logStop,
      mkInfo,
      mkMetaInfo,
-     mkTrackerResponse,
-     name,
-     prepareRequest,
-     urlEncodeHash
+     mkTrackerResponse
     ) where
 
 import FuncTorrent.Bencode

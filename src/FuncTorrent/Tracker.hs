@@ -2,26 +2,28 @@
 module FuncTorrent.Tracker
     (TrackerResponse(..),
      connect,
+     mkArgs,
+     mkParams,
      mkTrackerResponse,
-     prepareRequest,
      urlEncodeHash
     ) where
 
 import Prelude hiding (lookup, concat, replicate, splitAt)
-import Data.ByteString.Char8 (ByteString, unpack, splitAt)
+
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 as BC (pack, unpack, splitAt, concat, intercalate)
 import Data.Char (chr)
 import Data.List (intercalate)
 import Data.Map as M (lookup)
-import Data.Maybe (fromJust)
 import Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
 import Network.HTTP.Base (urlEncode)
 import Network.URI (parseURI)
 import qualified Data.ByteString.Base16 as B16 (encode)
 
-import FuncTorrent.Bencode (BVal(..), InfoDict)
-import FuncTorrent.Metainfo (infoHash)
+import FuncTorrent.Bencode (BVal(..))
 import FuncTorrent.Peer (Peer(..))
 import FuncTorrent.Utils (splitN)
+import FuncTorrent.Metainfo (Info(..), Metainfo(..))
 
 
 -- | Tracker response
@@ -31,8 +33,6 @@ data TrackerResponse = TrackerResponse {
     , complete :: Maybe Integer
     , incomplete :: Maybe Integer
     } deriving (Show, Eq)
-
-type Url = String
 
 -- | Deserialize tracker response
 mkTrackerResponse :: BVal -> Either ByteString TrackerResponse
@@ -60,7 +60,7 @@ mkTrackerResponse resp =
       toPort = read . ("0x" ++) . unpack . B16.encode
 
       toIP :: ByteString -> String
-      toIP = intercalate "." .
+      toIP = Data.List.intercalate "." .
              map (show . toInt . ("0x" ++) . unpack) .
                  splitN 2 . B16.encode
 
@@ -68,11 +68,14 @@ mkTrackerResponse resp =
       makePeer peer = Peer (toIP ip') (toPort port')
           where (ip', port') = splitAt 4 peer
 
+-- | Connect to a tracker and get peer info
+connect :: Metainfo -> String -> IO ByteString
+connect m peer_id = get (head . announceList $ m) $ mkArgs m peer_id
 
--- | urlEncodeHash
---
--- >>> urlEncodeHash $ pack "123456789abcdef123456789abcdef123456789a"
--- "%124Vx%9a%bc%de%f1%23Eg%89%ab%cd%ef%124Vx%9a"
+--- | URL encode hash as per RFC1738
+--- TODO: Add tests
+--- REVIEW: Why is this not written in terms of `Network.HTTP.Base.urlEncode` or
+--- equivalent library function?
 urlEncodeHash :: ByteString -> String
 urlEncodeHash bs = concatMap (encode' . unpack) (splitN 2 bs)
   where encode' b@[c1, c2] = let c =  chr (read ("0x" ++ b))
@@ -83,18 +86,26 @@ urlEncodeHash bs = concatMap (encode' . unpack) (splitN 2 bs)
 
         nonSpecialChars = ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ "-_.~"
 
-prepareRequest :: InfoDict -> String -> Integer -> String
-prepareRequest d peer_id len =
-  let p = [("info_hash", urlEncodeHash ((B16.encode . infoHash) d)),
-           ("peer_id", urlEncode peer_id),
-           ("port", "6881"),
-           ("uploaded", "0"),
-           ("downloaded", "0"),
-           ("left", show len),
-           ("compact", "1"),
-           ("event", "started")]
-  in intercalate "&" [f ++ "=" ++ s | (f,s) <- p]
+-- | Make arguments that should be posted to tracker.
+-- This is a separate pure function for testability.
+mkArgs :: Metainfo -> String -> [(String, ByteString)]
+mkArgs m peer_id = [("info_hash", pack . urlEncodeHash . B16.encode . infoHash $ m),
+                    ("peer_id", pack . urlEncode $ peer_id),
+                    ("port", "6881"),
+                    ("uploaded", "0"),
+                    ("downloaded", "0"),
+                    ("left", pack . show . lengthInBytes $ info m),
+                    ("compact", "1"),
+                    ("event", "started")]
 
-connect :: Url -> String -> IO ByteString
-connect baseurl qstr = simpleHTTP (defaultGETRequest_ url) >>= getResponseBody
-    where url = fromJust . parseURI $ (baseurl ++ "?" ++ qstr)
+-- | Make a query string from a alist of k, v
+-- TODO: Url encode each argument
+mkParams :: [(String, ByteString)] -> ByteString
+mkParams params = BC.intercalate "&" [concat [pack f, "=", s] | (f,s) <- params]
+
+get :: String -> [(String, ByteString)] -> IO ByteString
+get url args = simpleHTTP (defaultGETRequest_ url') >>= getResponseBody
+    where url' = case parseURI $ unpack $ concat [pack url, "?", qstr] of
+                   Just x -> x
+                   _ -> error "Bad tracker URL"
+          qstr = mkParams args
