@@ -39,12 +39,12 @@ hello = Metainfo {
             lengthInBytes = 12,
             md5sum = Nothing
           },
-          infoHash = "\249\SYN\145=\129\182\205\\\181v0\144\154\EM\150f\152\221]}",
           announceList = ["http://9.rarbg.com:2710/announce"],
           creationDate = Just 1428717851,
           comment = Just "hello world",
           createdBy = Just "Jaseem Abid",
-          encoding = Just "UTF-8"
+          encoding = Just "UTF-8",
+          infoHash = "\205CX(;\163<?TWS\175\CAND\222\253\250\214\136\EOT"
         }
 
 testFile :: TestTree
