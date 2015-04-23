@@ -16,7 +16,7 @@ import Control.Applicative ((<*))
 import Data.ByteString (ByteString, length, concat)
 import Data.ByteString.Char8 (unpack, pack)
 import Data.Functor ((<$>))
-import Data.Map.Strict (Map, fromList, keys, (!))
+import Data.Map.Strict (Map, fromList, toList)
 import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.ByteString as ParsecBS
 
@@ -160,4 +160,5 @@ encode (Blist xs) = concat ["l", concat $ map encode xs, "e"]
 encode (Bdict d) = concat ["d", concat kvlist, "e"]
     where
       kvlist :: [ByteString]
-      kvlist = [concat [encode . Bstr . pack $ k , encode (d ! k)] | k <- keys d]
+      kvlist = [encPair kv | kv <- toList d]
+      encPair (k, v) = concat [encode . Bstr . pack $ k, encode v]
