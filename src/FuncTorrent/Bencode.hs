@@ -2,7 +2,7 @@
 module FuncTorrent.Bencode
     (BVal(..)
     , bValToBList
-    , bValToBstr
+    , bValToBytestr
     , bValToInfoDict
     , bValToInteger
     , bstrToString
@@ -31,9 +31,9 @@ bValToInteger :: BVal -> Maybe Integer
 bValToInteger (Bint x) = Just x
 bValToInteger _        = Nothing
 
-bValToBstr :: BVal  -> Maybe ByteString
-bValToBstr (Bstr bs) = Just bs
-bValToBstr _         = Nothing
+bValToBytestr :: BVal  -> Maybe ByteString
+bValToBytestr (Bstr bs) = Just bs
+bValToBytestr _         = Nothing
 
 bValToBList :: BVal    -> Maybe [BVal]
 bValToBList (Blist lst) = Just lst
@@ -44,7 +44,7 @@ bValToInfoDict (Bdict dict) = Just dict
 bValToInfoDict _            = Nothing
 
 bstrToString :: BVal -> Maybe String
-bstrToString bval     = unpack <$> bValToBstr bval
+bstrToString bval     = unpack <$> bValToBytestr bval
 
 -- $setup
 -- >>> import Data.Either
@@ -59,8 +59,7 @@ bstrToString bval     = unpack <$> bValToBstr bval
 -- Right ""
 --
 bencStr :: ParsecBS.Parser ByteString
-bencStr = do _ <- spaces
-             ds <- many1 digit <* char ':'
+bencStr = do ds <- many1 digit <* char ':'
              s <- count (read ds) anyChar
              return (pack s)
 
@@ -83,8 +82,7 @@ bencStr = do _ <- spaces
 -- >>> isLeft $ parse bencInt "Bint" (pack "i002e")
 -- True
 bencInt :: ParsecBS.Parser Integer
-bencInt = do _ <- spaces
-             ds <- between (char 'i') (char 'e') numbers
+bencInt = do ds <- between (char 'i') (char 'e') numbers
              return (read ds)
                where numbers = do d' <- char '-' <|> digit
                                   ds' <- many digit
@@ -106,8 +104,7 @@ bencInt = do _ <- spaces
 -- >>> parse bencList "Blist" (pack "l4:spam4:eggsli42eee")
 -- Right [Bstr "spam",Bstr "eggs",Blist [Bint 42]]
 bencList :: ParsecBS.Parser [BVal]
-bencList = do _ <- spaces
-              between (char 'l') (char 'e') (many bencVal)
+bencList = between (char 'l') (char 'e') (many bencVal)
 
 -- | parse dict
 --
