@@ -20,6 +20,7 @@ library
                        FuncTorrent.Bencode,
                        FuncTorrent.Logger,
                        FuncTorrent.Metainfo,
+                       FuncTorrent.Network
                        FuncTorrent.Peer,
                        FuncTorrent.Tracker
 

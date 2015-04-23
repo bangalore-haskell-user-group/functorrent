@@ -3,28 +3,25 @@ module FuncTorrent.Tracker
     (TrackerResponse(..),
      connect,
      mkArgs,
-     mkParams,
      mkTrackerResponse,
      urlEncodeHash
     ) where
 
-import Prelude hiding (lookup, concat, replicate, splitAt)
+import Prelude hiding (lookup, splitAt)
 
 import Data.ByteString (ByteString)
-import Data.ByteString.Char8 as BC (pack, unpack, splitAt, concat, intercalate)
+import Data.ByteString.Char8 as BC (pack, unpack, splitAt)
 import Data.Char (chr)
 import Data.List (intercalate)
 import Data.Map as M (lookup)
-import Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
 import Network.HTTP.Base (urlEncode)
-import Network.URI (parseURI)
 import qualified Data.ByteString.Base16 as B16 (encode)
 
 import FuncTorrent.Bencode (BVal(..))
+import FuncTorrent.Metainfo (Info(..), Metainfo(..))
+import FuncTorrent.Network (get)
 import FuncTorrent.Peer (Peer(..))
 import FuncTorrent.Utils (splitN)
-import FuncTorrent.Metainfo (Info(..), Metainfo(..))
-
 
 -- | Tracker response
 data TrackerResponse = TrackerResponse {
@@ -97,15 +94,3 @@ mkArgs m peer_id = [("info_hash", pack . urlEncodeHash . B16.encode . infoHash $
                     ("left", pack . show . lengthInBytes $ info m),
                     ("compact", "1"),
                     ("event", "started")]
-
--- | Make a query string from a alist of k, v
--- TODO: Url encode each argument
-mkParams :: [(String, ByteString)] -> ByteString
-mkParams params = BC.intercalate "&" [concat [pack f, "=", s] | (f,s) <- params]
-
-get :: String -> [(String, ByteString)] -> IO ByteString
-get url args = simpleHTTP (defaultGETRequest_ url') >>= getResponseBody
-    where url' = case parseURI $ unpack $ concat [pack url, "?", qstr] of
-                   Just x -> x
-                   _ -> error "Bad tracker URL"
-          qstr = mkParams args
