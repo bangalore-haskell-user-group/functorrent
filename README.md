@@ -6,6 +6,10 @@
 
 I suggest using cabal sandbox.
 
+Or you can use Nix pkg, in which case, typing `nix-shell' at the root of the
+source code repo should drop you into a shell which has all the package
+dependencies installed.
+
 ### Steps:
 
 clone the repo; cd functorrent;
