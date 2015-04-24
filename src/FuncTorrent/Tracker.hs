@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module FuncTorrent.Tracker
     (TrackerResponse(..),
-     connect,
+     tracker,
      mkArgs,
      mkTrackerResponse,
      urlEncodeHash
@@ -66,8 +66,8 @@ mkTrackerResponse resp =
           where (ip', port') = splitAt 4 peer
 
 -- | Connect to a tracker and get peer info
-connect :: Metainfo -> String -> IO ByteString
-connect m peer_id = get (head . announceList $ m) $ mkArgs m peer_id
+tracker :: Metainfo -> String -> IO ByteString
+tracker m peer_id = get (head . announceList $ m) $ mkArgs m peer_id
 
 --- | URL encode hash as per RFC1738
 --- TODO: Add tests

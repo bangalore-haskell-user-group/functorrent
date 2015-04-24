@@ -4,7 +4,7 @@ module FuncTorrent
      Metainfo(..),
      Peer,
      TrackerResponse(..),
-     connect,
+     tracker,
      decode,
      encode,
      handShakeMsg,

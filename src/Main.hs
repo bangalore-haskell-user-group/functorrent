@@ -12,7 +12,7 @@ import FuncTorrent.Bencode (decode)
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
 import FuncTorrent.Peer (handShakeMsg)
-import FuncTorrent.Tracker (connect, peers, mkTrackerResponse)
+import FuncTorrent.Tracker (tracker, peers, mkTrackerResponse)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e
@@ -53,7 +53,7 @@ main = do
               log "Trying to fetch peers"
 
               log $ "Trackers: " ++ head (announceList m)
-              response <- connect m peerId
+              response <- tracker m peerId
 
               let hsMsgLen = show $ length $ handShakeMsg m peerId
               log $ "Hand-shake message length : " ++ hsMsgLen
