@@ -9,10 +9,52 @@ import Data.Map.Strict (fromList)
 import Test.Tasty
 import Test.Tasty.HUnit
 
+import Network.Socket
+import System.IO hiding (readFile, writeFile)
+
+
+import qualified Network.Socket.ByteString as NL
+
 import FuncTorrent.Bencode (decode, BVal(..))
 import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
-import FuncTorrent.Peer (Peer(..))
+import FuncTorrent.Peer (Peer(..), handShakeMsg)
 import FuncTorrent.Tracker
+
+peerId :: String
+peerId = "-HS0001-*-*-20150215"
+
+ping :: Int -> IO String
+ping n = do
+
+    -- Look up the hostname and port. Either raises an exception or returns a
+    -- nonempty list. First element in that list is supposed to be the best
+    -- option.
+    addrinfos <- getAddrInfo Nothing (Just "127.0.0.1") (Just "54627")
+    let peer = head addrinfos
+
+    -- Establish a socket for communication
+    sock <- socket (addrFamily peer) Stream defaultProtocol
+
+    setSocketOption sock KeepAlive 1
+
+    connect sock (addrAddress peer)
+
+    -- Make a Handle out of it for convenience
+    h <- socketToHandle sock WriteMode
+
+    -- We're going to set buffering to BlockBuffering and then explicitly call
+    -- hFlush after each message, below, so that messages get logged immediately
+    hSetBuffering h (BlockBuffering Nothing)
+
+    -- hPutStrLn :: Handle -> String -> IO ()
+    _ <- NL.send sock $ handShakeMsg hello peerId
+    res <- recv sock n
+
+    -- Make sure that we send data immediately
+    hFlush h
+
+    return res
+
 
 -- Parsed .torrent file
 file :: BVal

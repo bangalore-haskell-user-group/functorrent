@@ -36,6 +36,7 @@ library
                        containers,
                        cryptohash,
                        directory,
+                       network,
                        HTTP,
                        network-uri,
                        parsec,
@@ -55,6 +56,7 @@ executable functorrent
                        containers,
                        cryptohash,
                        directory,
+                       network,
                        HTTP,
                        network-uri,
                        parsec
@@ -70,6 +72,7 @@ test-suite functorrent-test
                      containers,
                      directory,
                      doctest,
+                     network,
                      tasty,
                      tasty-hunit
 
