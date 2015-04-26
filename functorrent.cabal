@@ -73,6 +73,7 @@ test-suite functorrent-test
                      containers,
                      directory,
                      doctest,
+                     QuickCheck,
                      tasty,
                      tasty-hunit,
                      QuickCheck,

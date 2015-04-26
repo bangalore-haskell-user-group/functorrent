@@ -13,7 +13,7 @@ with haskellPackages; cabal.mkDerivation (self: {
     base16Bytestring binary cryptohash HTTP networkUri parsec tasty
     tastyHunit
   ];
-  testDepends = [ doctest hlint tasty tastyHunit ];
+  testDepends = [ doctest hlint QuickCheck tasty tastyHunit ];
   meta = {
     description = "A Bit-torrent client";
     license = self.stdenv.lib.licenses.gpl3;
