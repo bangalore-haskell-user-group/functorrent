@@ -39,6 +39,7 @@ library
                        HTTP,
                        network-uri,
                        parsec,
+                       QuickCheck,
                        tasty,
                        tasty-hunit
 
