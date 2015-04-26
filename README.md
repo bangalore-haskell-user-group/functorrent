@@ -6,18 +6,25 @@
 
 I suggest using cabal sandbox.
 
-Or you can use Nix pkg, in which case, typing `nix-shell' at the root of the
-source code repo should drop you into a shell which has all the package
+Or you can use [Nix](https://nixos.org/nix/), in which case, typing ```nix-shell```
+at the root of the source code repo should drop you into a shell which has all the package
 dependencies installed.
 
 ### Steps:
 
+## for cabal sandbox
 clone the repo; cd functorrent;
 
     $ cabal sandbox init
     $ wget http://www.stackage.org/lts/cabal.config
     $ cabal install --only-dependencies --enable-tests
     $ cabal build # binaries in ./dist/built/functorrent/*
+
+## for nix
+
+    $ nix-shell --pure
+    [...]
+    [nix-shell] $ cabal configure && cabal build
 
 ## Goals
 
