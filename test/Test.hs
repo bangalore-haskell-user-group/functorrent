@@ -6,10 +6,11 @@ import Prelude hiding (readFile)
 import Data.ByteString (ByteString, readFile)
 import Data.Map.Strict (fromList)
 
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.Tasty (TestTree, testGroup, defaultMain)
+import Test.Tasty.HUnit (testCase, (@?=))
+import Test.Tasty.QuickCheck (testProperty)
 
-import FuncTorrent.Bencode (decode, BVal(..))
+import FuncTorrent.Bencode (encode, decode, BVal(..))
 import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
 import FuncTorrent.Peer (Peer(..))
 import FuncTorrent.Tracker
@@ -92,8 +93,16 @@ unitTests :: TestTree
 unitTests = testGroup "Unit tests" [testFile, testMkMetaInfo, testResponse1,
                                             testResponse2]
 
+propEncodeDecode :: BVal -> Bool
+propEncodeDecode bval = let encoded = encode bval
+                            decoded = decode encoded
+                        in Right bval == decoded
+
+qcTests :: TestTree
+qcTests = testGroup "QuickCheck tests" [ testProperty "encode/decode" propEncodeDecode ]
+
 tests :: TestTree
-tests = testGroup "Tests" [unitTests]
+tests = testGroup "Tests" [unitTests, qcTests]
 
 main :: IO ()
 main = defaultMain tests

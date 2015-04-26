@@ -73,7 +73,10 @@ test-suite functorrent-test
                      directory,
                      doctest,
                      tasty,
-                     tasty-hunit
+                     tasty-hunit,
+                     QuickCheck,
+                     tasty-quickcheck,
+                     test-framework-quickcheck2
 
 test-suite functorrent-hlint
   type:              exitcode-stdio-1.0
