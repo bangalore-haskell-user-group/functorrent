@@ -57,6 +57,7 @@ executable functorrent
                        cryptohash,
                        directory,
                        HTTP,
+                       QuickCheck,
                        network-uri,
                        parsec
 
