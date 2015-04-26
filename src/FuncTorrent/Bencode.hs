@@ -38,9 +38,9 @@ instance Arbitrary BVal where
                                , Bstr <$> arbitrary]
                 bval n = oneof [ Bint <$> arbitrary
                                , Bstr <$> arbitrary
-                               , Blist <$> vectorOf n arbitrary
+                               , Blist <$> vectorOf n (bval (n `div` 4))
                                , do keys <- vectorOf n arbitrary
-                                    vals <- vectorOf n arbitrary
+                                    vals <- vectorOf n (bval (n `div` 4))
                                     return $ Bdict $ fromList $ zip keys vals ]
 
 -- getters
