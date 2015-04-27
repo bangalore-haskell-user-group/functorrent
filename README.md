@@ -2,25 +2,27 @@
 
 [![Build Status](https://travis-ci.org/vu3rdd/functorrent.svg?branch=master)](https://travis-ci.org/vu3rdd/functorrent)
 
-## building
+## Building
 
-I suggest using cabal sandbox.
+Functorrent can be build with [Cabal](https://www.haskell.org/cabal/) sandbox or
+[Nix](https://nixos.org/nix/).
 
-Or you can use [Nix](https://nixos.org/nix/), in which case, typing ```nix-shell```
-at the root of the source code repo should drop you into a shell which has all the package
-dependencies installed.
+### Cabal sandbox
 
-### Steps:
+Sandboxes give you per project independent containers, just like Python's
+virtualenv.
 
-## for cabal sandbox
-clone the repo; cd functorrent;
 
+    $ git clone https://github.com/vu3rdd/functorrent && cd functorrent
     $ cabal sandbox init
-    $ wget http://www.stackage.org/lts/cabal.config
     $ cabal install --only-dependencies --enable-tests
     $ cabal build # binaries in ./dist/built/functorrent/*
 
-## for nix
+### Building with Nix
+
+``$ nix-shell``` at the root of the source code repo should drop you into a
+shell which has all the package dependencies installed.
+
 
     $ nix-shell --pure
     [...]
