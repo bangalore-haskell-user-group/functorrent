@@ -19,29 +19,12 @@ import Data.Functor ((<$>))
 import Data.Map.Strict (Map, fromList, toList)
 import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.ByteString as ParsecBS
-import Test.QuickCheck
 
 data BVal = Bint Integer
           | Bstr ByteString
           | Blist [BVal]
           | Bdict (Map String BVal)
             deriving (Ord, Eq, Show)
-
-instance Arbitrary ByteString where
-  arbitrary = pack <$> arbitrary
-
-instance Arbitrary BVal where
-  arbitrary = sized bval
-              where
-                bval :: Int -> Gen BVal
-                bval 0 = oneof [ Bint <$> arbitrary
-                               , Bstr <$> arbitrary]
-                bval n = oneof [ Bint <$> arbitrary
-                               , Bstr <$> arbitrary
-                               , Blist <$> vectorOf n (bval (n `div` 4))
-                               , do keys <- vectorOf n arbitrary
-                                    vals <- vectorOf n (bval (n `div` 4))
-                                    return $ Bdict $ fromList $ zip keys vals ]
 
 -- getters
 bValToInteger :: BVal -> Maybe Integer
