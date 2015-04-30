@@ -37,6 +37,7 @@ library
                        cryptohash,
                        directory,
                        HTTP,
+                       network,
                        network-uri,
                        parsec,
                        QuickCheck,
@@ -58,6 +59,7 @@ executable functorrent
                        directory,
                        HTTP,
                        QuickCheck,
+                       network,
                        network-uri,
                        parsec
 
