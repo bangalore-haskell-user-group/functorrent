@@ -11,7 +11,7 @@ import Text.ParserCombinators.Parsec (ParseError)
 import FuncTorrent.Bencode (decode)
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
-import FuncTorrent.Peer (Peer(..), handShake)
+import FuncTorrent.Peer (handShake)
 import FuncTorrent.Tracker (tracker, peers, mkTrackerResponse)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
@@ -64,7 +64,7 @@ main = do
                       Right peerResp -> do
                           log $ "Peers List : " ++ (show . peers $ peerResp)
                           let p1 = head (peers peerResp)
-                          msg <- handShake (Peer "" "95.188.88.59" 27000) (infoHash m) peerId
+                          msg <- handShake p1 (infoHash m) peerId
                           log $ "handshake: " ++ (show msg)
                           return ()
                       Left e -> log $ "Error" ++ unpack e
