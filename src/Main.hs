@@ -2,7 +2,7 @@
 module Main where
 
 import Prelude hiding (log, length, readFile, writeFile)
-import Data.ByteString.Char8 (ByteString, readFile, writeFile, length, unpack)
+import Data.ByteString.Char8 (ByteString, readFile, writeFile, unpack)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import System.Directory (doesFileExist)
@@ -11,7 +11,7 @@ import Text.ParserCombinators.Parsec (ParseError)
 import FuncTorrent.Bencode (decode)
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
-import FuncTorrent.Peer (handShakeMsg)
+import FuncTorrent.Peer (Peer(..), handShake)
 import FuncTorrent.Tracker (tracker, peers, mkTrackerResponse)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
@@ -55,17 +55,18 @@ main = do
               log $ "Trackers: " ++ head (announceList m)
               response <- tracker m peerId
 
-              let hsMsgLen = show $ length $ handShakeMsg m peerId
-              log $ "Hand-shake message length : " ++ hsMsgLen
-
               -- TODO: Write to ~/.functorrent/caches
               writeFile (name (info m) ++ ".cache") response
 
               case decode response of
                 Right trackerInfo ->
                     case mkTrackerResponse trackerInfo of
-                      Right peerResp ->
+                      Right peerResp -> do
                           log $ "Peers List : " ++ (show . peers $ peerResp)
+                          let p1 = head (peers peerResp)
+                          msg <- handShake (Peer "" "95.188.88.59" 27000) (infoHash m) peerId
+                          log $ "handshake: " ++ (show msg)
+                          return ()
                       Left e -> log $ "Error" ++ unpack e
                 Left e -> logError e log
 

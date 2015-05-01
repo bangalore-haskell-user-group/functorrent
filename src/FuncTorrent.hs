@@ -7,7 +7,7 @@ module FuncTorrent
      tracker,
      decode,
      encode,
-     handShakeMsg,
+     handShake,
      initLogger,
      logMessage,
      logStop,
