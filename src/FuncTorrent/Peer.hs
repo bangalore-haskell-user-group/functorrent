@@ -66,13 +66,13 @@ genHandShakeMsg infoHash peer_id = concat [pstrlen, pstr, reserved, infoHash, pe
 handShake :: Peer -> ByteString -> String -> IO Handle
 handShake (Peer _ ip port) infoHash peerid = do
   let hs = genHandShakeMsg infoHash peerid
-  handle <- connectTo ip (PortNumber (fromIntegral port))
-  hSetBuffering handle LineBuffering
-  hPut handle hs
-  rlenBS <- hGet handle 1
+  h <- connectTo ip (PortNumber (fromIntegral port))
+  hSetBuffering h LineBuffering
+  hPut h hs
+  rlenBS <- hGet h 1
   let rlen = fromIntegral $ (unpack rlenBS) !! 0
-  hGet handle rlen
-  return handle
+  hGet h rlen
+  return h
 
 instance Binary PeerMsg where
   put msg = case msg of
@@ -85,9 +85,9 @@ instance Binary PeerMsg where
                                  putWord8 2
              NotInterestedMsg -> do putWord32be 1
                                     putWord8 3
-             HaveMsg index -> do putWord32be 5
-                                 putWord8 4
-                                 putWord32be (fromIntegral index)
+             HaveMsg i -> do putWord32be 5
+                             putWord8 4
+                             putWord32be (fromIntegral i)
              BitFieldMsg bf -> do putWord32be $ fromIntegral (1 + bfListLen)
                                   putWord8 5
                                   mapM_ putWord8 bfList
@@ -115,8 +115,8 @@ instance Binary PeerMsg where
                              putWord16be (fromIntegral p)
   get = do
     l <- getWord32be
-    id <- getWord8
-    case id of
+    msgid <- getWord8
+    case msgid of
      0 -> return ChokeMsg
      1 -> return UnChokeMsg
      2 -> return InterestedMsg
