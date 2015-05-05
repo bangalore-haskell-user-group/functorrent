@@ -7,11 +7,14 @@ module FuncTorrent.Peer
 import Prelude hiding (lookup, concat, replicate, splitAt)
 
 import System.IO
-import Data.ByteString (ByteString, unpack, concat, hGet, hPut, singleton)
-import Data.ByteString.Char8 (replicate, pack)
+import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
+import qualified Data.ByteString.Char8 as BC (replicate, pack)
 import Network (connectTo, PortID(..))
 import Data.Binary (Binary(..))
-import Data.Binary.Put (putWord32be, putWord8)
+import Data.Binary.Put (putWord32be, putWord16be, putWord8)
+import Data.Binary.Get (getWord32be, getWord16be, getWord8)
+import Control.Monad (replicateM, liftM)
+import Control.Applicative ((<$>), liftA3)
 
 type ID = String
 type IP = String
@@ -56,9 +59,9 @@ data PeerMsg = KeepAliveMsg
 genHandShakeMsg :: ByteString -> String -> ByteString
 genHandShakeMsg infoHash peer_id = concat [pstrlen, pstr, reserved, infoHash, peerID]
   where pstrlen = singleton 19
-        pstr = pack "BitTorrent protocol"
-        reserved = replicate 8 '\0'
-        peerID = pack peer_id
+        pstr = BC.pack "BitTorrent protocol"
+        reserved = BC.replicate 8 '\0'
+        peerID = BC.pack peer_id
 
 handShake :: Peer -> ByteString -> String -> IO Handle
 handShake (Peer _ ip port) infoHash peerid = do
@@ -102,9 +105,32 @@ instance Binary PeerMsg where
                                   mapM_ putWord8 blockList
                                     where blockList = unpack b
                                           blocklen = length blockList
-             CancelMsg i o l -> undefined
-             PortMsg p -> undefined
-  get = undefined
+             CancelMsg i o l -> do putWord32be 13
+                                   putWord8 8
+                                   putWord32be (fromIntegral i)
+                                   putWord32be (fromIntegral o)
+                                   putWord32be (fromIntegral l)
+             PortMsg p -> do putWord32be 3
+                             putWord8 9
+                             putWord16be (fromIntegral p)
+  get = do
+    l <- getWord32be
+    id <- getWord8
+    case id of
+     0 -> return ChokeMsg
+     1 -> return UnChokeMsg
+     2 -> return InterestedMsg
+     3 -> return NotInterestedMsg
+     4 -> liftM (HaveMsg . fromIntegral) getWord32be
+     5 -> liftM (BitFieldMsg . pack) (replicateM (fromIntegral l - 1) getWord8)
+     6 -> liftA3 RequestMsg getInteger getInteger getInteger
+       where getInteger = fromIntegral <$> getWord32be
+     7 -> liftA3 PieceMsg getInteger getInteger (pack  <$> replicateM (fromIntegral l - 9) getWord8)
+       where getInteger = fromIntegral <$> getWord32be
+     8 -> liftA3 CancelMsg getInteger getInteger getInteger
+       where getInteger = fromIntegral <$> getWord32be
+     9 -> liftM (PortMsg . fromIntegral) getWord16be
+     _ -> error "unknown message ID"
 
 -- loop1 :: shake hands with all peers, find out the pieces they have, form PieceData.
 -- recvMsg :: Peer -> Handle -> Msg
