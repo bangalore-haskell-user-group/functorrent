@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module FuncTorrent.Peer
     (Peer(..),
-     handShake
+     handShake,
+     msgLoop
     ) where
 
 import Prelude hiding (lookup, concat, replicate, splitAt)
@@ -14,7 +15,7 @@ import Network (connectTo, PortID(..))
 import Data.Binary (Binary(..), decode)
 import Data.Binary.Put (putWord32be, putWord16be, putWord8)
 import Data.Binary.Get (getWord32be, getWord16be, getWord8)
-import Control.Monad (replicateM, liftM)
+import Control.Monad (replicateM, liftM, forever)
 import Control.Applicative ((<$>), liftA3)
 
 type ID = String
@@ -143,3 +144,8 @@ getMsg h = do
 
 -- loop1 :: shake hands with all peers, find out the pieces they have, form PieceData.
 -- recvMsg :: Peer -> Handle -> Msg
+
+msgLoop :: Handle -> IO ()
+msgLoop h = forever $ do
+  msg <- getMsg h
+  putStrLn $ "got a " ++ (show msg)

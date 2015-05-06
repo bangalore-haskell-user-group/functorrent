@@ -8,6 +8,7 @@ module FuncTorrent
      decode,
      encode,
      handShake,
+     msgLoop,
      initLogger,
      logMessage,
      logStop,
