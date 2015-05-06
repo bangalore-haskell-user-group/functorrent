@@ -1,5 +1,7 @@
 # A bittorrent client.
 
+[![Join the chat at https://gitter.im/vu3rdd/functorrent](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/vu3rdd/functorrent?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status](https://travis-ci.org/vu3rdd/functorrent.svg?branch=master)](https://travis-ci.org/vu3rdd/functorrent)
 
 ## Building
