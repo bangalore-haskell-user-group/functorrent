@@ -9,14 +9,15 @@ import Prelude hiding (lookup, concat, replicate, splitAt)
 
 import System.IO
 import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton, append)
-import Data.ByteString.Lazy (fromStrict)
-import qualified Data.ByteString.Char8 as BC (replicate, pack, readInt)
+import Data.ByteString.Lazy (fromStrict, fromChunks)
+import qualified Data.ByteString.Char8 as BC (replicate, pack, readInt, putStrLn)
 import Network (connectTo, PortID(..))
 import Data.Binary (Binary(..), decode)
 import Data.Binary.Put (putWord32be, putWord16be, putWord8)
-import Data.Binary.Get (getWord32be, getWord16be, getWord8)
+import Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
 import Control.Monad (replicateM, liftM, forever)
 import Control.Applicative ((<$>), liftA3)
+import Control.Concurrent (threadDelay)
 
 type ID = String
 type IP = String
@@ -137,10 +138,18 @@ instance Binary PeerMsg where
 getMsg :: Handle -> IO PeerMsg
 getMsg h = do
   lBS <- hGet h 4
-  let (Just (l, _)) = BC.readInt lBS
-  msg <- hGet h l
-  return $ decode $ fromStrict $ append lBS msg
+  let lenBS = length (unpack lBS)
+  putStrLn $ "bytes read: " ++ (show lenBS)
+  let l = bsToInt lBS
+  if l == 0
+    then return KeepAliveMsg
+    else do
+    putStrLn $ "len: " ++ (show lBS)
+    msg <- hGet h l
+    return $ decode $ fromStrict $ append lBS msg
 
+bsToInt :: ByteString -> Int
+bsToInt x = fromIntegral (runGet getWord32be (fromChunks (return x)))
 
 -- loop1 :: shake hands with all peers, find out the pieces they have, form PieceData.
 -- recvMsg :: Peer -> Handle -> Msg
