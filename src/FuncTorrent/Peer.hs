@@ -133,20 +133,20 @@ instance Binary PeerMsg where
      8 -> liftA3 CancelMsg getInteger getInteger getInteger
        where getInteger = fromIntegral <$> getWord32be
      9 -> liftM (PortMsg . fromIntegral) getWord16be
-     _ -> error "unknown message ID"
+     _ -> error ("unknown message ID: " ++ show msgid)
 
 getMsg :: Handle -> IO PeerMsg
 getMsg h = do
   lBS <- hGet h 4
-  let lenBS = length (unpack lBS)
-  putStrLn $ "bytes read: " ++ (show lenBS)
   let l = bsToInt lBS
   if l == 0
     then return KeepAliveMsg
     else do
-    putStrLn $ "len: " ++ (show lBS)
-    msg <- hGet h l
-    return $ decode $ fromStrict $ append lBS msg
+    putStrLn $ "len: " ++ show l
+    msgType <- hGet h 1
+    putStrLn $ "msg Type: " ++ show msgType
+    msg <- hGet h (l - 1)
+    return $ decode $ fromStrict $ concat [lBS, msgType, msg]
 
 bsToInt :: ByteString -> Int
 bsToInt x = fromIntegral (runGet getWord32be (fromChunks (return x)))
@@ -157,4 +157,4 @@ bsToInt x = fromIntegral (runGet getWord32be (fromChunks (return x)))
 msgLoop :: Handle -> IO ()
 msgLoop h = forever $ do
   msg <- getMsg h
-  putStrLn $ "got a " ++ (show msg)
+  putStrLn $ "got a " ++ show msg
