@@ -8,16 +8,15 @@ module FuncTorrent.Peer
 import Prelude hiding (lookup, concat, replicate, splitAt)
 
 import System.IO
-import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton, append)
+import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import Data.ByteString.Lazy (fromStrict, fromChunks)
-import qualified Data.ByteString.Char8 as BC (replicate, pack, readInt, putStrLn)
+import qualified Data.ByteString.Char8 as BC (replicate, pack)
 import Network (connectTo, PortID(..))
 import Data.Binary (Binary(..), decode)
 import Data.Binary.Put (putWord32be, putWord16be, putWord8)
 import Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
 import Control.Monad (replicateM, liftM, forever)
 import Control.Applicative ((<$>), liftA3)
-import Control.Concurrent (threadDelay)
 
 type ID = String
 type IP = String
@@ -143,10 +142,10 @@ getMsg h = do
     then return KeepAliveMsg
     else do
     putStrLn $ "len: " ++ show l
-    msgType <- hGet h 1
-    putStrLn $ "msg Type: " ++ show msgType
+    msgID <- hGet h 1
+    putStrLn $ "msg Type: " ++ show msgID
     msg <- hGet h (l - 1)
-    return $ decode $ fromStrict $ concat [lBS, msgType, msg]
+    return $ decode $ fromStrict $ concat [lBS, msgID, msg]
 
 bsToInt :: ByteString -> Int
 bsToInt x = fromIntegral (runGet getWord32be (fromChunks (return x)))
