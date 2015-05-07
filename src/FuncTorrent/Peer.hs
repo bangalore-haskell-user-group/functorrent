@@ -71,9 +71,8 @@ handShake (Peer _ ip port) infoHash peerid = do
   h <- connectTo ip (PortNumber (fromIntegral port))
   hSetBuffering h LineBuffering
   hPut h hs
-  rlenBS <- hGet h 1
-  let rlen = fromIntegral $ (unpack rlenBS) !! 0
-  hGet h rlen
+  rlenBS <- hGet h (length (unpack hs))
+  putStrLn $ "got handshake from peer: " ++ show rlenBS
   return h
 
 instance Binary PeerMsg where
