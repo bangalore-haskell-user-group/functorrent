@@ -45,7 +45,7 @@ genHandShakeMsg infoHash peer_id = concat [pstrlen, pstr, reserved, infoHash, pe
         reserved = replicate 8 '\0'
         peerID = pack peer_id
 
-handShake :: Peer -> ByteString -> String -> IO ByteString
+handShake :: Peer -> ByteString -> String -> IO (ByteString, ByteString, ByteString, ByteString)
 handShake (Peer _ ip port) infoHash peerid = do
   let hs = genHandShakeMsg infoHash peerid
   handle <- connectTo ip (PortNumber (fromIntegral port))
@@ -53,7 +53,11 @@ handShake (Peer _ ip port) infoHash peerid = do
   hPut handle hs
   rlenBS <- hGet handle 1
   let rlen = fromIntegral $ (unpack rlenBS) !! 0
-  hGet handle rlen
+  pstr <- hGet handle rlen
+  reservedBits <- hGet handle 8
+  info_hash <- hGet handle 20
+  peer_id <- hGet handle 20
+  return (pstr, reservedBits, info_hash, peer_id)
 
 -- sendMsg :: Peer -> Handle -> PeerMsg -> IO ()
 -- recvMsg :: Peer -> Handle -> Msg
