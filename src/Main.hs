@@ -1,17 +1,18 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Prelude hiding (length, readFile)
-
-import Bencode (decode, BVal(..))
-import Data.ByteString.Char8 as BC (ByteString, pack, length, readFile, length)
-import Data.Functor ((<$>))
-import Metainfo (announce, lengthInBytes, mkMetaInfo, info)
-import Peer (getPeers, getPeerResponse, handShakeMsg)
+import Prelude hiding (log, length, readFile, writeFile)
+import Data.ByteString.Char8 (ByteString, readFile, writeFile, unpack)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
-import Tracker (connect, prepareRequest)
+import System.Directory (doesFileExist)
 import Text.ParserCombinators.Parsec (ParseError)
-import Logger
+
+import FuncTorrent.Bencode (decode)
+import FuncTorrent.Logger (initLogger, logMessage, logStop)
+import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
+import FuncTorrent.Peer (handShake)
+import FuncTorrent.Tracker (tracker, peers, mkTrackerResponse)
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e
@@ -27,35 +28,47 @@ usage = putStrLn "usage: functorrent torrent-file"
 
 parse :: [String] -> IO ByteString
 parse [] = usage >> exit
-parse [a] = readFile a
+parse [a] = do
+  fileExist <- doesFileExist a
+  if fileExist
+    then readFile a
+    else error "file does not exist"
 parse _ = exit
 
 main :: IO ()
 main = do
     args <- getArgs
     logR <- initLogger
-    let logMsg = logMessage logR
-    logMsg $ "Parsing input file: " ++ concat args
+    let log = logMessage logR
+    log "Starting up functorrent"
+    log $ "Parsing input file " ++ concat args
     torrentStr <- parse args
     case decode torrentStr of
       Right d ->
           case mkMetaInfo d of
-            Nothing -> logMsg "parse error"
+            Nothing -> log "Unable to make meta info file"
             Just m -> do
-              logMsg "Input File OK"
+              log "Input File OK"
+              log $ "Downloading file : " ++ name (info m)
+              log "Trying to fetch peers"
 
-              let len = lengthInBytes $ info m
-                  (Bdict d') = d
-              
-              logMsg "Trying to fetch peers: "
+              log $ "Trackers: " ++ head (announceList m)
+              response <- tracker m peerId
 
-              body <- pack <$> connect (announce m) (prepareRequest d' peerId len)
-              
-              let peerResponse = show $ getPeers $ getPeerResponse body
-              logMsg $ "Peers List : " ++ peerResponse
-              
-              let hsMsgLen = show $ length $ handShakeMsg d' peerId
-              logMsg $ "Hand-shake message length : " ++ hsMsgLen
+              -- TODO: Write to ~/.functorrent/caches
+              writeFile (name (info m) ++ ".cache") response
 
-      Left e -> logError e logMsg
+              case decode response of
+                Right trackerInfo ->
+                    case mkTrackerResponse trackerInfo of
+                      Right peerResp -> do
+                          log $ "Peers List : " ++ (show . peers $ peerResp)
+                          let p1 = head (peers peerResp)
+                          msg <- handShake p1 (infoHash m) peerId
+                          log $ "handshake: " ++ (show msg)
+                          return ()
+                      Left e -> log $ "Error" ++ unpack e
+                Left e -> logError e log
+
+      Left e -> logError e log
     logStop logR

@@ -1,4 +1,4 @@
-module Utils where
+module FuncTorrent.Utils where
 
 import qualified Data.ByteString.Char8 as BC
 
