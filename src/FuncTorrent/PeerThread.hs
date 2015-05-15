@@ -7,6 +7,7 @@ module FuncTorrent.PeerThread where
 
 import Control.Concurrent
 import System.Timeout
+import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 
 -- Should we use this instead of Network?
 import Network.Socket
@@ -35,9 +36,9 @@ import FuncTorrent.Peer
 
 data PeerThread = PeerThread {
         peer            :: Peer
-        peerState       :: PeerState
-        status          :: MVar PeerThreadStatus
-        action          :: MVar PeerThreadAction
+    ,   peerState       :: PeerState
+    ,   status          :: MVar PeerThreadStatus
+    ,   action          :: MVar PeerThreadAction
     }
 
 data PeerThreadStatus = 
@@ -53,9 +54,22 @@ data PeerThreadAction =
     |   Seed
     |   StayIdle
 
-initPeerThread :: Peer -> IO PeerThread
-initPeerThread _ = undefined
+type PeerStatus = ByteString
+type TransferStats = ByteString
+type Piece = ByteString
 
+defaultPeerState = undefined
+
+initPeerThread :: Peer -> IO (PeerThread, ThreadId)
+initPeerThread p = do
+  s <- newEmptyMVar
+  a <- newEmptyMVar
+  let pt = PeerThread p defaultPeerState s a
+  tid <- forkIO $ peerThreadMain pt
+  return (pt, tid)
+
+
+-- Gracefully exit a thread
 stopPeerThread :: PeerThread -> IO ()
 stopPeerThread _ = undefined
 
@@ -71,12 +85,18 @@ stopPeerThread _ = undefined
 -- 8. If needed initiate request or seed.
 
 peerThreadMain :: PeerThread -> IO ()
-peerThreadMain _ = do
-  response <- doHandShake
-  if response == False
-     then do setStatus PeerCommError
-             return ()
-     else setStatus InitDone
+peerThreadMain pt = do
+  response <- doHandShake pt
+  return ()
+--   if response == False
+--     then do 
+--        setStatus PeerCommError
+--        return ()
+--     else do
+--        setStatus InitDone
+--        return ()
+  
+ where setStatus = undefined
           -- After this get further directions from ControlThread
 
 
