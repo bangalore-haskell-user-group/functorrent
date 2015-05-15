@@ -7,6 +7,7 @@ module FuncTorrent.PeerThread where
 
 import Control.Concurrent
 import System.Timeout
+import Data.IORef
 import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 
 -- Should we use this instead of Network?
@@ -36,7 +37,7 @@ import FuncTorrent.Peer
 
 data PeerThread = PeerThread {
         peer            :: Peer
-    ,   peerState       :: PeerState
+    ,   peerState       :: IORef PeerState
     ,   status          :: MVar PeerThreadStatus
     ,   action          :: MVar PeerThreadAction
     }
@@ -64,7 +65,8 @@ initPeerThread :: Peer -> IO (PeerThread, ThreadId)
 initPeerThread p = do
   s <- newEmptyMVar
   a <- newEmptyMVar
-  let pt = PeerThread p defaultPeerState s a
+  i <- newIORef defaultPeerState
+  let pt = PeerThread p i s a
   tid <- forkIO $ peerThreadMain pt
   return (pt, tid)
 
