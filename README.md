@@ -38,7 +38,7 @@ shell which has all the package dependencies installed.
 - Become more profient with Haskell.
 - Implement something non-trivial with Haskell (crypto, file operations, network
   operations, concurrency, bit twiddling, DHT).
-- Follow the spec - https://wiki.theory.org/BitTorrentSpecification
+- Follow the spec ([official spec](http://bittorrent.org/beps/bep_0003.html), [unofficial spec](https://wiki.theory.org/BitTorrentSpecification))
 - Easy for newbies like me to read and understand along side the spec.
 - doctest and quickcheck tests.
 - Follow Haskell Style Guide - https://github.com/tibbe/haskell-style-guide/blob/master/haskell-style.md
