@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module FuncTorrent.Peer
     (Peer(..),
+     PeerState(..),
      handShake,
      msgLoop
     ) where
