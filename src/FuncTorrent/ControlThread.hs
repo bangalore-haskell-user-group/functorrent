@@ -43,8 +43,13 @@ type Tracker = ByteString
 fetchPeersFromTracker :: Tracker -> IO [Peer]
 fetchPeersFromTracker _ = undefined
 
--- Forks a peer-thread and adds its ThreadId/MVar to the peerThreads list
+-- Forks a peer-thread and add it to the peerThreads list
 forkPeerThread :: ControlThread -> Peer -> IO ControlThread
 forkPeerThread ct p = do
   pt <- initPeerThread p
-  return (peerThreads %~ (pt : ) $ ct)
+  return (peerThreads %~ (pt : ) $ ct) -- Append pt to peerThreads
+
+-- First try to stop and let the thread exit gracefully.
+-- If it does not work, then give thread a kill signal
+killPeerThread :: ControlThread -> (PeerThread, ThreadId) -> IO ControlThread
+killPeerThread _ _ = undefined

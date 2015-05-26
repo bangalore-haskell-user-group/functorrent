@@ -51,7 +51,9 @@ data PeerThreadStatus =
     |   Seeding TransferStats
 
 data PeerThreadAction =
-        GetPiece Piece
+        InitPeerConnection
+    |   GetPeerStatus
+    |   GetPiece Piece
     |   Seed
     |   StayIdle
 
@@ -68,6 +70,7 @@ initPeerThread p = do
   i <- newIORef defaultPeerState
   let pt = PeerThread p i s a
   tid <- forkIO $ peerThreadMain pt
+  putMVar (action pt) InitPeerConnection
   return (pt, tid)
 
 
@@ -88,17 +91,21 @@ stopPeerThread _ = undefined
 
 peerThreadMain :: PeerThread -> IO ()
 peerThreadMain pt = do
-  response <- doHandShake pt
-  return ()
---   if response == False
---     then do 
---        setStatus PeerCommError
---        return ()
---     else do
---        setStatus InitDone
---        return ()
+  toDoAction <- getAction
+  case toDoAction of
+    InitPeerConnection -> do
+      response <- doHandShake pt
+      if not response
+        then setStatus PeerCommError
+        else setStatus InitDone
+    GetPeerStatus -> undefined
+    GetPiece piece -> undefined
+    Seed -> undefined
+    StayIdle -> undefined
+  peerThreadMain pt
   
- where setStatus = undefined
+ where setStatus = putMVar (status pt)
+       getAction = takeMVar (action pt)
           -- After this get further directions from ControlThread
 
 
@@ -134,6 +141,6 @@ setPeerThreadAction _ _ = undefined
 --     peer_interested = 0
 -- 3. Send bit-field message
 
-doHandShake :: PeerThread -> IO (Bool)
-doHandShake pt = undefined 
+doHandShake :: PeerThread -> IO Bool
+doHandShake pt = undefined
     -- timeout (10*1000*1000) handShake
