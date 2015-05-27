@@ -9,7 +9,9 @@ import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import System.IO
 
 import FuncTorrent.Peer
+
 import FuncTorrent.PeerThread
+import FuncTorrent.PeerThreadData
 
 type TorrentDesc = ByteString
 type ControlThreadStatus = ByteString
@@ -18,8 +20,8 @@ data ControlThread = ControlThread {
         _torrent         :: TorrentDesc
     ,   _peerList        :: [Peer]
     ,   _peerThreads     :: [(PeerThread, ThreadId)]
-    ,   _diskIO_Handle   :: Handle
-    ,   _controlThreadStatus :: MVar ControlThreadStatus
+--    ,   _diskIO_Handle   :: Handle
+--    ,   _controlThreadStatus :: MVar ControlThreadStatus
         -- action also, through which ControlThread might be controlled.
     }
 
