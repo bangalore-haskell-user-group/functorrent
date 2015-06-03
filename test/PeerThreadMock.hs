@@ -18,4 +18,17 @@ import System.IO
 import FuncTorrent.PeerThreadData
 
 peerThreadMain :: PeerThread -> IO ()
-peerThreadMain _ = putStrLn "Hello from peer mock"
+peerThreadMain pt = do
+  toDoAction <- getAction
+  case toDoAction of
+    InitPeerConnection -> do
+      threadDelay $ 1000*1000
+      setStatus InitDone
+    GetPeerStatus -> undefined
+    GetPiece piece -> undefined
+    Seed -> undefined
+    StayIdle -> undefined
+  peerThreadMain pt
+  
+ where setStatus = putMVar (status pt)
+       getAction = takeMVar (action pt)

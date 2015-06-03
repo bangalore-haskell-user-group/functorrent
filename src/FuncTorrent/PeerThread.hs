@@ -61,3 +61,13 @@ initPeerThread p = do
 stopPeerThread :: PeerThread -> IO ()
 stopPeerThread _ = undefined
 
+-- Control thread will get status from this API
+-- It should not block due to Peer-Thread
+getPeerThreadStatus :: PeerThread -> IO (Maybe PeerThreadStatus)
+getPeerThreadStatus pt = tryReadMVar (status pt)
+
+
+-- Peer Thread may block, if no action is recieved from Control-thread
+-- It may also kill itself if no communication from Control-thread for some time.
+setPeerThreadAction :: PeerThread -> PeerThreadAction -> IO Bool
+setPeerThreadAction pt a = tryPutMVar (action pt) a

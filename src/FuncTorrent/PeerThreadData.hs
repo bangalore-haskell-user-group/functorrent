@@ -23,6 +23,7 @@ data PeerThreadStatus =
     |   PeerBusy
     |   Downloading TransferStats
     |   Seeding TransferStats
+  deriving (Eq,Show)
 
 data PeerThreadAction =
         InitPeerConnection
@@ -30,6 +31,7 @@ data PeerThreadAction =
     |   GetPiece Piece
     |   Seed
     |   StayIdle
+  deriving (Eq,Show)
 
 type PeerStatus = ByteString
 type TransferStats = ByteString

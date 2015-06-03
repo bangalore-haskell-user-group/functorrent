@@ -36,6 +36,7 @@ makeLenses ''ControlThread
 -- 3. Initiate PeerThreads to do peer communication
 -- 4. Control the activity of PeerThreads
 -- 5. Maintain cache, etc
+-- 6. Handle incoming connections
 
 controlThreadMain :: FilePath -> IO ()
 controlThreadMain = undefined
