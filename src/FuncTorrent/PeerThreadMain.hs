@@ -35,7 +35,7 @@ peerThreadMain pt = do
         then setStatus PeerCommError
         else setStatus InitDone
     GetPeerStatus -> undefined
-    GetPiece piece -> undefined
+    --GetPiece piece -> undefined
     Seed -> undefined
     StayIdle -> undefined
   peerThreadMain pt

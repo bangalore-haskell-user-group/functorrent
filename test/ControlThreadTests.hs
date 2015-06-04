@@ -41,7 +41,7 @@ controlThreadMain ct = do
          status <- getPeerThreadStatus p1
          if status == Just PeerBusy
            then do
-             _ <- setPeerThreadAction p1 $ GetPiece ""
+             _ <- setPeerThreadAction p1 $ GetPieces []
              putStrLn "Things look ok"
              return ()
            else do 

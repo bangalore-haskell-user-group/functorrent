@@ -25,10 +25,10 @@ peerThreadMain pt = do
       threadDelay $ 1000*1000
       setStatus InitDone
     GetPeerStatus -> undefined
-    GetPiece piece -> undefined
+    GetPieces piece -> undefined
     Seed -> undefined
     StayIdle -> undefined
   peerThreadMain pt
-  
+
  where setStatus = putMVar (status pt)
        getAction = takeMVar (action pt)

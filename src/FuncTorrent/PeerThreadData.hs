@@ -21,19 +21,23 @@ data PeerThreadStatus =
     |   InitDone
     |   PeerReady PeerStatus
     |   PeerBusy
-    |   Downloading TransferStats
+    -- Active Pieces, Downloaded Pieces (After the last status update)
+    |   Downloading TransferStats [Piece] [Piece]
     |   Seeding TransferStats
   deriving (Eq,Show)
 
 data PeerThreadAction =
         InitPeerConnection
     |   GetPeerStatus
-    |   GetPiece Piece
+    |   GetPieces [Piece]
     |   Seed
     |   StayIdle
   deriving (Eq,Show)
 
 type PeerStatus = ByteString
+
+-- This should capture the data transfered
 type TransferStats = ByteString
+
 type Piece = ByteString
 
