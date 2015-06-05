@@ -109,7 +109,9 @@ getIncrementalPeerThreadStatus = undefined
 
 -- Sample current piece availability
 samplePieceAvailability :: [PeerThread] -> IO [(PeerThread, [Piece])]
-samplePieceAvailability = undefined
+samplePieceAvailability = mapM (\x -> do
+                               y <- takeMVar $ x^.peerPieces
+                               return (x,y))
 
 -- Uses the piece availability to distribute the download jobs to peers
 -- This should be used to initialize the job distribution
@@ -122,16 +124,6 @@ initialJobAssign = undefined
 -- Additionaly this can also compute the peer ranking
 incrementalJobAssign :: [(PeerThread, [Piece])] -> [(PeerThread, [Piece])] -> [(PeerThread, [Piece])] -> [(PeerThread, [Piece])]
 incrementalJobAssign = undefined
-
--- Sequence of API calls should be
--- 1. samplePieceAvailability 
--- 2. initialJobAssign
--- 3. getIncrementalPeerThreadStatus
--- 4. incrementalJobAssign
--- 5. repeat 3-4.
--- 6. After some timout, repeat 1-5.
---
--- What happens if new peer connection is established.
 
 filterBadPeers :: ControlThread -> IO ControlThread
 filterBadPeers = undefined

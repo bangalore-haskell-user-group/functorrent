@@ -53,7 +53,8 @@ initPeerThread p = do
   a <- newEmptyMVar
   i <- newIORef defaultPeerState
   t <- newEmptyMVar
-  let pt = PeerThread p i s a t
+  pcs <- newEmptyMVar
+  let pt = PeerThread p i s a t pcs
   tid <- forkIO $ peerThreadMain pt
   _ <- setPeerThreadAction pt InitPeerConnection
   return (pt, tid)

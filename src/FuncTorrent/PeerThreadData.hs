@@ -51,6 +51,7 @@ data PeerThread = PeerThread {
     ,   _status             :: MVar PeerThreadStatus
     ,   _action             :: MVar PeerThreadAction
     ,   _transferStats      :: MVar TransferStats
+    ,   _peerPieces         :: MVar [Piece]
     }
 
 makeLenses ''PeerThread
