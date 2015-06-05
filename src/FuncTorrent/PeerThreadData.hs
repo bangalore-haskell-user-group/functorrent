@@ -1,29 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module FuncTorrent.PeerThreadData where
 
 import Control.Concurrent
+import Control.Lens
 import Data.IORef
 import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import System.IO
 
 import FuncTorrent.Peer
 
-data PeerThread = PeerThread {
-        peer            :: Peer
-    ,   peerState       :: IORef PeerState
-    ,   status          :: MVar PeerThreadStatus
-    ,   action          :: MVar PeerThreadAction
-    }
-
 data PeerThreadStatus = 
         PeerCommError
     |   InitDone
-    |   PeerReady PeerStatus
+    |   PeerReady
     |   PeerBusy
-    -- Active Pieces, Downloaded Pieces (After the last status update)
-    |   Downloading TransferStats [Piece] [Piece]
-    |   Seeding TransferStats
+    |   Downloading
+    |   Seeding
   deriving (Eq,Show)
 
 data PeerThreadAction =
@@ -36,8 +30,28 @@ data PeerThreadAction =
 
 type PeerStatus = ByteString
 
--- This should capture the data transfered
-type TransferStats = ByteString
-
 type Piece = ByteString
 
+-- DownloadedInc has Pieces which were downloaded 
+-- after the last status fetch from ControlThread
+data TransferStats = TransferStats {
+        _activePieces       ::  [Piece]
+    ,   _downloadedInc      ::  [Piece]
+    ,   _downloaded         ::  [Piece]
+    ,   _queuePieces        ::  [Piece]
+    ,   _dataRecieved       ::  Int
+    ,   _dataSent           ::  Int
+    ,   _totalDataR         ::  Int
+    ,   _totalDataS         ::  Int
+    }
+
+data PeerThread = PeerThread {
+        _peer               :: Peer
+    ,   _peerState          :: IORef PeerState
+    ,   _status             :: MVar PeerThreadStatus
+    ,   _action             :: MVar PeerThreadAction
+    ,   _transferStats      :: MVar TransferStats
+    }
+
+makeLenses ''PeerThread
+makeLenses ''TransferStats

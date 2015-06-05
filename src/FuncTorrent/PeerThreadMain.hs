@@ -7,6 +7,7 @@ module FuncTorrent.PeerThreadMain
 import Prelude hiding (readFile)
 
 import Control.Concurrent
+import Control.Lens
 import System.Timeout
 import Data.IORef
 import System.IO
@@ -40,8 +41,8 @@ peerThreadMain pt = do
     StayIdle -> undefined
   peerThreadMain pt
   
- where setStatus = putMVar (status pt)
-       getAction = takeMVar (action pt)
+ where setStatus = putMVar $ pt^.status
+       getAction = takeMVar $ pt^.action
           -- After this get further directions from ControlThread
 
 

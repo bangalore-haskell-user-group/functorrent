@@ -8,6 +8,7 @@ module FuncTorrent.PeerThread where
 -- For each peer a separate instance of PeerThread is used
 
 import Control.Concurrent
+import Control.Lens
 import System.Timeout
 import Data.IORef
 
@@ -51,9 +52,10 @@ initPeerThread p = do
   s <- newEmptyMVar
   a <- newEmptyMVar
   i <- newIORef defaultPeerState
-  let pt = PeerThread p i s a
+  t <- newEmptyMVar
+  let pt = PeerThread p i s a t
   tid <- forkIO $ peerThreadMain pt
-  putMVar (action pt) InitPeerConnection
+  _ <- setPeerThreadAction pt InitPeerConnection
   return (pt, tid)
 
 
@@ -64,10 +66,10 @@ stopPeerThread _ = undefined
 -- Control thread will get status from this API
 -- It should not block due to Peer-Thread
 getPeerThreadStatus :: PeerThread -> IO (Maybe PeerThreadStatus)
-getPeerThreadStatus pt = tryReadMVar (status pt)
+getPeerThreadStatus pt = tryReadMVar $ pt^.status
 
 
 -- Peer Thread may block, if no action is recieved from Control-thread
 -- It may also kill itself if no communication from Control-thread for some time.
 setPeerThreadAction :: PeerThread -> PeerThreadAction -> IO Bool
-setPeerThreadAction pt a = tryPutMVar (action pt) a
+setPeerThreadAction pt a = tryPutMVar (pt^.action) a
