@@ -105,7 +105,14 @@ pieceManagement ct = do
 
 -- Get information about what pieces are currently downloading + downloaded after the previous status update
 getIncrementalPeerThreadStatus :: [PeerThread] -> IO [(PeerThread, [Piece])]
-getIncrementalPeerThreadStatus = undefined
+getIncrementalPeerThreadStatus = 
+    mapM (\x -> do
+         ts <- takeMVar $ x^.transferStats
+         let ps = ts^.activePieces ++ ts^.downloadedInc
+             tsnew = downloadedInc .~ [] $ ts
+         putMVar (x^.transferStats) tsnew
+         return (x,ps))
+
 
 -- Sample current piece availability
 samplePieceAvailability :: [PeerThread] -> IO [(PeerThread, [Piece])]
