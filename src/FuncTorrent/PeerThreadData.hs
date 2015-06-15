@@ -30,7 +30,7 @@ data PeerThreadAction =
 
 type PeerStatus = ByteString
 
-type Piece = ByteString
+type Piece = Int
 
 -- DownloadedInc has Pieces which were downloaded 
 -- after the last status fetch from ControlThread
@@ -52,6 +52,7 @@ data PeerThread = PeerThread {
     ,   _action             :: MVar PeerThreadAction
     ,   _transferStats      :: MVar TransferStats
     ,   _peerPieces         :: MVar [Piece]
+    ,   _downloadThread     :: IORef (Maybe ThreadId)
     }
 
 makeLenses ''PeerThread

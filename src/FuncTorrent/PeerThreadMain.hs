@@ -35,28 +35,40 @@ peerThreadMain pt = do
       if not response
         then setStatus PeerCommError
         else setStatus InitDone
-    GetPeerStatus -> undefined
-    --GetPiece piece -> undefined
-    Seed -> undefined
-    StayIdle -> undefined
+
+    GetPeerStatus ->
+      setStatus PeerReady
+
+    GetPieces piece -> do
+      startDownload pt
+      setStatus Downloading
+
+    Seed ->
+      setStatus Seeding
+
+    StayIdle ->
+      setStatus PeerReady
+
   peerThreadMain pt
-  
- where setStatus = putMVar $ pt^.status
-       getAction = takeMVar $ pt^.action
-          -- After this get further directions from ControlThread
 
+ where setStatus = putMVar (pt^.status)
+       getAction = takeMVar (pt^.action)
 
--- Here manage send/recieve
--- Whenever a recieve request comes, use some logic to decide
--- Send and recieve have to be done through two more threads
-doDataTransfer :: PeerThread -> IO ()
-doDataTransfer _ = undefined
+-- Fork a thread to get pieces from the peer.
+-- The incoming requests from this peer will be handled
+-- By IncomingConnThread.
+--
+startDownload :: PeerThread -> IO ()
+startDownload pt = do
+  tid <- forkIO $ downloadData pt
+  writeIORef (pt^.downloadThread) (Just tid)
 
-sendData :: PeerThread -> IO ()
-sendData _ = undefined
+stopDownload :: PeerThread -> IO PeerThread
+stopDownload _ = undefined
 
-recieveData :: PeerThread -> IO ()
-recieveData _ = undefined
+-- This will do the actual data communication with peer
+downloadData :: PeerThread -> IO ()
+downloadData _ = undefined
 
 
 -- Hand-Shake details

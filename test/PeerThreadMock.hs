@@ -25,10 +25,20 @@ peerThreadMain pt = do
     InitPeerConnection -> do
       threadDelay $ 1000*1000
       setStatus InitDone
-    GetPeerStatus -> undefined
-    GetPieces piece -> undefined
-    Seed -> undefined
-    StayIdle -> undefined
+
+    GetPeerStatus -> do
+      threadDelay $ 1000*1000
+      setStatus PeerReady
+
+    GetPieces piece ->
+      setStatus Downloading
+
+    Seed ->
+      setStatus Seeding
+
+    StayIdle ->
+      setStatus PeerReady
+
   peerThreadMain pt
 
  where setStatus = putMVar (pt^.status)

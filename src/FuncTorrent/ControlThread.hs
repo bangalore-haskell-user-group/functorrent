@@ -100,8 +100,16 @@ pieceManagement ct = do
   s <- getIncrementalPeerThreadStatus peers
   p <- samplePieceAvailability peers
   let u = incrementalJobAssign s p []
-  updatePeerPieceJobs u
- where updatePeerPieceJobs = undefined
+  do updatePeerPieceQueue u
+     return ct
+
+updatePeerPieceQueue :: [(PeerThread, [Piece])] -> IO ()
+updatePeerPieceQueue =
+    mapM_ (\x -> do
+         ts <- takeMVar $ fst x ^. transferStats
+         let tsnew = queuePieces .~ snd x $ ts
+         putMVar (fst x ^.transferStats) tsnew)
+
 
 -- Get information about what pieces are currently downloading + downloaded after the previous status update
 getIncrementalPeerThreadStatus :: [PeerThread] -> IO [(PeerThread, [Piece])]
