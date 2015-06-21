@@ -9,8 +9,11 @@ import Control.Lens
 import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import System.IO
 
-import FuncTorrent.Peer
+import FuncTorrent.Tracker (TrackerResponse(..), tracker, peers, mkTrackerResponse)
+import FuncTorrent.Bencode (decode)
+import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
 
+import FuncTorrent.Peer
 import FuncTorrent.PeerThread
 import FuncTorrent.PeerThreadData
 
@@ -18,7 +21,8 @@ type TorrentDesc = ByteString
 type ControlThreadStatus = ByteString
 
 data ControlThread = ControlThread {
-        _torrent         :: TorrentDesc
+        _metaInfo        :: Metainfo
+    ,   _trackerResponses:: [TrackerResponse]
     ,   _peerList        :: [Peer]
     ,   _peerThreads     :: [(PeerThread, ThreadId)]
 --    ,   _diskIO_Handle   :: Handle
@@ -71,6 +75,21 @@ mainLoop = do
   -- Loop Here and check if we need to quit/exit
   -- Add delay here before polling PeerThreads again
   mainLoop
+
+getTrackerResponse :: ControlThread -> IO ControlThread
+getTrackerResponse ct = do
+  response <- tracker (ct^.metaInfo) "temp-peer-id"
+ 
+  -- TODO: Write to ~/.functorrent/caches
+  -- writeFile (name (info m) ++ ".cache") response
+ 
+  case decode response of
+    Right trackerInfo ->
+        case mkTrackerResponse trackerInfo of
+          Right trackerResp -> 
+            return (trackerResponses %~ (trackerResp : ) $ ct)
+          Left e -> undefined --log error
+    Left e -> undefined --log error
 
 handleIncomingConnections = undefined
 
