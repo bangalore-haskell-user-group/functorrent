@@ -57,7 +57,7 @@ initPeerThread p = do
   d <- newIORef Nothing
   let pt = PeerThread p i s a t pcs d
   tid <- forkIO $ peerThreadMain pt
-  _ <- setPeerThreadAction pt InitPeerConnection
+  _ <- setPeerThreadAction InitPeerConnection pt
   return (pt, tid)
 
 
@@ -73,5 +73,5 @@ getPeerThreadStatus pt = tryReadMVar $ pt^.status
 
 -- Peer Thread may block, if no action is recieved from Control-thread
 -- It may also kill itself if no communication from Control-thread for some time.
-setPeerThreadAction :: PeerThread -> PeerThreadAction -> IO Bool
-setPeerThreadAction pt a = tryPutMVar (pt^.action) a
+setPeerThreadAction :: PeerThreadAction -> PeerThread -> IO Bool
+setPeerThreadAction a pt = tryPutMVar (pt^.action) a

@@ -4,9 +4,11 @@
 module FuncTorrent.ControlThread where
 
 import Control.Concurrent
+import GHC.Conc
 import Control.Monad
 import Control.Lens
 import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
+import Data.IORef
 import System.IO
 
 import FuncTorrent.Tracker (TrackerResponse(..), tracker, peers, mkTrackerResponse)
@@ -17,17 +19,27 @@ import FuncTorrent.Peer
 import FuncTorrent.PeerThread
 import FuncTorrent.PeerThreadData
 
-type TorrentDesc = ByteString
-type ControlThreadStatus = ByteString
+data ControlThreadStatus =
+        Stopped
+    |   Downloading
+    |   Seeding
+  deriving (Eq, Show)
+
+data ControlThreadAction =
+        Download
+    |   Pause
+    |   Seed
+    |   Stop
+  deriving (Eq, Show)
 
 data ControlThread = ControlThread {
-        _metaInfo        :: Metainfo
-    ,   _trackerResponses:: [TrackerResponse]
-    ,   _peerList        :: [Peer]
-    ,   _peerThreads     :: [(PeerThread, ThreadId)]
+        _metaInfo           :: Metainfo
+    ,   _trackerResponses   :: [TrackerResponse]
+    ,   _peerList           :: [Peer]
+    ,   _peerThreads        :: [(PeerThread, ThreadId)]
 --    ,   _diskIO_Handle   :: Handle
---    ,   _controlThreadStatus :: MVar ControlThreadStatus
-        -- action also, through which ControlThread might be controlled.
+    ,   _controlTStatus     :: IORef ControlThreadStatus
+    ,   _controlTAction     :: IORef ControlThreadAction
     }
 
 makeLenses ''ControlThread
@@ -49,10 +61,8 @@ makeLenses ''ControlThread
 -- 3. Stopping download/seed.
 --
 controlThreadMain :: ControlThread -> IO ()
-controlThreadMain ct = do
-  ct1 <- doInitialization ct
-  ct2 <- mainLoop ct1
-  doExit
+controlThreadMain ct =
+    doExit =<< (mainLoop <=< doInitialization) ct
 
 doInitialization :: ControlThread -> IO ControlThread
 doInitialization ct = do
@@ -74,7 +84,42 @@ mainLoop = do
 
   -- Loop Here and check if we need to quit/exit
   -- Add delay here before polling PeerThreads again
-  mainLoop
+  checkAction
+
+ where
+     checkAction ct = do
+         act <- readIORef $ view controlTAction ct
+         case act of
+              FuncTorrent.ControlThread.Stop -> return ct
+              _ -> mainLoop ct
+
+doExit :: ControlThread -> IO ()
+doExit ct = do
+  let peers = ct ^. peerThreads
+  -- let the peer threads stop themselves
+  mapM_ ((setPeerThreadAction FuncTorrent.PeerThreadData.Stop).fst) peers
+
+  -- Let the threads run for a while
+  -- We may add delay also if required
+  yield
+
+  -- remove all the threads which stopped successfully
+  ct1 <- clearFinishedThreads ct
+
+  -- If there are still threads waiting/blocked then either wait
+  -- if they are blocked due to disk write, then wait and retry
+  -- if thread not responding then kill the thread
+
+  unless (null (ct1 ^. peerThreads)) $ doExit ct1
+
+ where
+     clearFinishedThreads :: ControlThread -> IO ControlThread
+     clearFinishedThreads ct = do
+       remainingThreads <- filterM isRunning $ ct ^. peerThreads
+       return (ct & peerThreads .~ remainingThreads)
+      where
+          isRunning (_,id) =
+              threadStatus id >>= (\x -> return $ ThreadFinished /= x)
 
 getTrackerResponse :: ControlThread -> IO ControlThread
 getTrackerResponse ct = do
@@ -92,13 +137,6 @@ getTrackerResponse ct = do
     Left e -> undefined --log error
 
 handleIncomingConnections = undefined
-
-doExit = undefined
-
-type Tracker = ByteString
-
-fetchPeersFromTracker :: Tracker -> IO [Peer]
-fetchPeersFromTracker _ = undefined
 
 -- Forks a peer-thread and add it to the peerThreads list
 forkPeerThread :: ControlThread -> Peer -> IO ControlThread
