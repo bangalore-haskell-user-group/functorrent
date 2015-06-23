@@ -6,8 +6,7 @@ module FuncTorrent.PeerThreadData where
 import Control.Concurrent
 import Control.Lens
 import Data.IORef
-import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
-import System.IO
+import Data.ByteString (ByteString)
 
 import FuncTorrent.Peer
 
@@ -49,8 +48,8 @@ data TransferStats = TransferStats {
 data PeerThread = PeerThread {
         _peer               :: Peer
     ,   _peerState          :: IORef PeerState
-    ,   _status             :: MVar PeerThreadStatus
-    ,   _action             :: MVar PeerThreadAction
+    ,   _peerTStatus        :: MVar PeerThreadStatus
+    ,   _peerTAction        :: MVar PeerThreadAction
     ,   _transferStats      :: MVar TransferStats
     ,   _peerPieces         :: MVar [Piece]
     ,   _downloadThread     :: IORef (Maybe ThreadId)

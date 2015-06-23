@@ -5,15 +5,14 @@ module FuncTorrent.ControlThread where
 
 import Control.Concurrent
 import GHC.Conc
-import Control.Monad
 import Control.Lens
-import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import Data.IORef
-import System.IO
+import Control.Monad hiding (
+    forM , forM_ , mapM , mapM_ , msum , sequence , sequence_ )
 
-import FuncTorrent.Tracker (TrackerResponse(..), tracker, peers, mkTrackerResponse)
+import FuncTorrent.Tracker (TrackerResponse(..), tracker, mkTrackerResponse)
 import FuncTorrent.Bencode (decode)
-import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
+import FuncTorrent.Metainfo (Metainfo(..))
 
 import FuncTorrent.Peer
 import FuncTorrent.PeerThread
@@ -65,39 +64,34 @@ controlThreadMain ct =
     doExit =<< (mainLoop <=< doInitialization) ct
 
 doInitialization :: ControlThread -> IO ControlThread
-doInitialization ct = do
+doInitialization ct =
   let peerInit = take 10 $ ct^.peerList
-  ct1 <- foldM forkPeerThread ct peerInit
-  return ct1
+  in foldM forkPeerThread ct peerInit
 
 mainLoop :: ControlThread -> IO ControlThread
-mainLoop = do
+mainLoop ct =
   -- At this stage rank peers and decide if we want to disconnect
   -- And create more peers/ use incoming connections.
-  filterBadPeers
+  filterBadPeers ct >>=
 
-  -- Fork Peer Threads for incoming connections
-  -- Put them on idle, till we decide to use them.
-  handleIncomingConnections
-  
-  pieceManagement
+  pieceManagement >>=
 
   -- Loop Here and check if we need to quit/exit
   -- Add delay here before polling PeerThreads again
   checkAction
 
  where
-     checkAction ct = do
-         act <- readIORef $ view controlTAction ct
-         case act of
-              FuncTorrent.ControlThread.Stop -> return ct
-              _ -> mainLoop ct
+     checkAction ct1 = do
+         action <- readIORef $ view controlTAction ct1
+         case action of
+              FuncTorrent.ControlThread.Stop -> return ct1
+              _ -> mainLoop ct1
 
 doExit :: ControlThread -> IO ()
 doExit ct = do
-  let peers = ct ^. peerThreads
+  let peerTs = ct ^. peerThreads
   -- let the peer threads stop themselves
-  mapM_ ((setPeerThreadAction FuncTorrent.PeerThreadData.Stop).fst) peers
+  mapM_ ((setPeerThreadAction FuncTorrent.PeerThreadData.Stop).fst) peerTs
 
   -- Let the threads run for a while
   -- We may add delay also if required
@@ -114,12 +108,12 @@ doExit ct = do
 
  where
      clearFinishedThreads :: ControlThread -> IO ControlThread
-     clearFinishedThreads ct = do
-       remainingThreads <- filterM isRunning $ ct ^. peerThreads
-       return (ct & peerThreads .~ remainingThreads)
+     clearFinishedThreads ct1 = do
+       remainingThreads <- filterM isRunning $ ct1 ^. peerThreads
+       return (ct1 & peerThreads .~ remainingThreads)
       where
-          isRunning (_,id) =
-              threadStatus id >>= (\x -> return $ ThreadFinished /= x)
+          isRunning (_,tid) =
+              threadStatus tid >>= (\x -> return $ ThreadFinished /= x)
 
 getTrackerResponse :: ControlThread -> IO ControlThread
 getTrackerResponse ct = do
@@ -133,10 +127,8 @@ getTrackerResponse ct = do
         case mkTrackerResponse trackerInfo of
           Right trackerResp -> 
             return (trackerResponses %~ (trackerResp : ) $ ct)
-          Left e -> undefined --log error
-    Left e -> undefined --log error
-
-handleIncomingConnections = undefined
+          Left _ -> undefined --log error
+    Left _ -> undefined --log error
 
 -- Forks a peer-thread and add it to the peerThreads list
 forkPeerThread :: ControlThread -> Peer -> IO ControlThread
@@ -153,9 +145,9 @@ killPeerThread _ _ = undefined
 
 pieceManagement :: ControlThread -> IO ControlThread
 pieceManagement ct = do
-  let peers = map fst $ ct^.peerThreads
-  s <- getIncrementalPeerThreadStatus peers
-  p <- samplePieceAvailability peers
+  let peerTs = map fst $ ct^.peerThreads
+  s <- getIncrementalPeerThreadStatus peerTs
+  p <- samplePieceAvailability peerTs
   let u = incrementalJobAssign s p []
   do updatePeerPieceQueue u
      return ct

@@ -9,11 +9,7 @@ module FuncTorrent.PeerThread where
 
 import Control.Concurrent
 import Control.Lens
-import System.Timeout
 import Data.IORef
-
--- Should we use this instead of Network?
-import Network.Socket
 
 import FuncTorrent.Peer
 import FuncTorrent.PeerThreadData
@@ -45,6 +41,7 @@ import FuncTorrent.PeerThreadMain (peerThreadMain)
 -- The communication between control thread and peer thread is through
 -- status and action.
 
+defaultPeerState :: PeerState
 defaultPeerState = undefined
 
 initPeerThread :: Peer -> IO (PeerThread, ThreadId)
@@ -68,10 +65,10 @@ stopPeerThread _ = undefined
 -- Control thread will get status from this API
 -- It should not block due to Peer-Thread
 getPeerThreadStatus :: PeerThread -> IO (Maybe PeerThreadStatus)
-getPeerThreadStatus pt = tryReadMVar $ pt^.status
+getPeerThreadStatus pt = tryReadMVar $ pt^.peerTStatus
 
 
 -- Peer Thread may block, if no action is recieved from Control-thread
 -- It may also kill itself if no communication from Control-thread for some time.
 setPeerThreadAction :: PeerThreadAction -> PeerThread -> IO Bool
-setPeerThreadAction a pt = tryPutMVar (pt^.action) a
+setPeerThreadAction a pt = tryPutMVar (pt^.peerTAction) a

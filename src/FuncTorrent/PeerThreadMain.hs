@@ -8,12 +8,9 @@ import Prelude hiding (readFile)
 
 import Control.Concurrent
 import Control.Lens
-import System.Timeout
 import Data.IORef
-import System.IO
 
 import FuncTorrent.PeerThreadData
-import FuncTorrent.Peer
 
 -- Sequence of events in the life of a peer thread
 -- 1. Initiate hand-shake and set bit field?
@@ -39,7 +36,7 @@ peerThreadMain pt = do
     GetPeerStatus ->
       setStatus PeerReady
 
-    GetPieces piece -> do
+    GetPieces _ -> do
       startDownload pt
       setStatus Downloading
 
@@ -49,10 +46,13 @@ peerThreadMain pt = do
     StayIdle ->
       setStatus PeerReady
 
+    Stop -> do
+      stopDownload pt
+      return ()
   peerThreadMain pt
 
- where setStatus = putMVar (pt^.status)
-       getAction = takeMVar (pt^.action)
+ where setStatus = putMVar (pt^.peerTStatus)
+       getAction = takeMVar (pt^.peerTAction)
 
 -- Fork a thread to get pieces from the peer.
 -- The incoming requests from this peer will be handled
@@ -63,7 +63,7 @@ startDownload pt = do
   tid <- forkIO $ downloadData pt
   writeIORef (pt^.downloadThread) (Just tid)
 
-stopDownload :: PeerThread -> IO PeerThread
+stopDownload :: PeerThread -> IO ()
 stopDownload _ = undefined
 
 -- This will do the actual data communication with peer
@@ -82,6 +82,6 @@ downloadData _ = undefined
 -- 3. Send bit-field message
 
 doHandShake :: PeerThread -> IO Bool
-doHandShake pt = undefined
+doHandShake = undefined
     -- timeout (10*1000*1000) handShake
 
