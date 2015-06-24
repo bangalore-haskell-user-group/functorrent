@@ -27,6 +27,7 @@ library
                        FuncTorrent.PeerThread
                        FuncTorrent.PeerThreadMain
                        FuncTorrent.PeerThreadData
+                       FuncTorrent.ServerThread
 
   other-modules:       FuncTorrent.Utils
   other-extensions:    OverloadedStrings, CPP
