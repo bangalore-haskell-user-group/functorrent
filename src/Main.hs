@@ -17,8 +17,8 @@ import FuncTorrent.Tracker (tracker, peers, mkTrackerResponse)
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e
 
-myPeerId :: String
-myPeerId = "-HS0001-*-*-20150215"
+peerId :: String
+peerId = "-HS0001-*-*-20150215"
 
 exit :: IO ByteString
 exit = exitSuccess
@@ -34,15 +34,6 @@ parse [a] = do
     then readFile a
     else error "file does not exist"
 parse _ = exit
-
-checkPeerValidity :: Metainfo -> (String -> IO ()) -> Peer -> IO ()
-checkPeerValidity mInfo log peer = do
-  log $ "Checking peer with ip: " ++ (\(Peer _ x _) -> x ) peer
-  let myInfoHash = infoHash mInfo
-  (_, _, infoVal, peer_id) <- handShake peer myInfoHash myPeerId
-  if infoVal == myInfoHash
-    then log $ "Peer Ok: " ++ show peer_id
-    else log "Peer hash value did not match!"
 
 main :: IO ()
 main = do
@@ -73,7 +64,8 @@ main = do
                       Right peerResp -> do
                           log $ "Peers List : " ++ (show . peers $ peerResp)
                           let p1 = head (peers peerResp)
-                          checkPeerValidity m log p1
+                          msg <- handShake p1 (infoHash m) peerId
+                          log $ "handshake: " ++ (show msg)
                           return ()
                       Left e -> log $ "Error" ++ unpack e
                 Left e -> logError e log
