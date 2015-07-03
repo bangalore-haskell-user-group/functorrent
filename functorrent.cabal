@@ -12,7 +12,7 @@ maintainer:          ram@rkrishnan.org
 -- copyright:
 category:            Network
 build-type:          Simple
-extra-source-files:  README
+extra-source-files:  README.md
 cabal-version:       >=1.18
 
 library
