@@ -10,6 +10,16 @@ import Data.ByteString (ByteString)
 
 import FuncTorrent.Peer
 
+data PeerThread = PeerThread {
+        _peer               :: Peer
+    ,   _peerState          :: IORef PeerState
+    ,   _peerTStatus        :: MVar PeerThreadStatus
+    ,   _peerTAction        :: MVar PeerThreadAction
+    ,   _transferStats      :: MVar TransferStats
+    ,   _peerPieces         :: MVar [Piece]
+    ,   _downloadThread     :: IORef (Maybe ThreadId)
+    }
+
 data PeerThreadStatus = 
         PeerCommError
     |   InitDone
@@ -43,16 +53,6 @@ data TransferStats = TransferStats {
     ,   _dataSent           ::  Int
     ,   _totalDataR         ::  Int
     ,   _totalDataS         ::  Int
-    }
-
-data PeerThread = PeerThread {
-        _peer               :: Peer
-    ,   _peerState          :: IORef PeerState
-    ,   _peerTStatus        :: MVar PeerThreadStatus
-    ,   _peerTAction        :: MVar PeerThreadAction
-    ,   _transferStats      :: MVar TransferStats
-    ,   _peerPieces         :: MVar [Piece]
-    ,   _downloadThread     :: IORef (Maybe ThreadId)
     }
 
 makeLenses ''PeerThread

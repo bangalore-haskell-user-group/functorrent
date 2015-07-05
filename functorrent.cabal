@@ -48,7 +48,8 @@ library
                        QuickCheck,
                        tasty,
                        tasty-hunit,
-                       lens
+                       lens,
+                       transformers
 
 executable functorrent
   main-is:             Main.hs

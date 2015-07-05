@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE LambdaCase #-}
 
 module FuncTorrent.ServerThread where
 
-import Control.Concurrent
-import GHC.Conc
-import Control.Monad
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Maybe
 import Control.Lens
-import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
+import Data.ByteString (ByteString)
 import Data.IORef
 import System.IO
 import Network
@@ -15,7 +15,6 @@ import Network
 
 import FuncTorrent.Metainfo (Metainfo(..))
 import FuncTorrent.Peer
-import FuncTorrent.PeerThread
 import FuncTorrent.PeerThreadData
 import FuncTorrent.ControlThread
 
@@ -62,33 +61,42 @@ serverMainLoop st =
   checkHandShakeMsgAndForkNewThread st >>= handleAction
 
  where 
-    handleAction st = do
-      a <- readIORef (st ^. serverTAction)
-      case a of
+    handleAction st1 =
+      readIORef (st1 ^. serverTAction) >>=
+      \case
         FuncTorrent.ServerThread.Seed -> 
-          serverMainLoop st
+          serverMainLoop st1
         AddTorrent t ->
-          let st1 = activeTorrents %~ (t :) $ st
-          in serverMainLoop st1
+          let st2 = activeTorrents %~ (t :) $ st1
+          in serverMainLoop st2
         RemoveTorrent m ->
-          let st1 = activeTorrents %~ filter ((/=m).fst) $ st
-          in serverMainLoop st1
-        FuncTorrent.ServerThread.Stop -> return st
+          let st2 = activeTorrents %~ filter ((/=m).fst) $ st1
+          in serverMainLoop st2
+        FuncTorrent.ServerThread.Stop -> return st1
 
 
 checkHandShakeMsgAndForkNewThread :: ServerThread -> (Handle, HostName, PortNumber) -> IO ServerThread
-checkHandShakeMsgAndForkNewThread st (h, peerName, peerPort) = 
-  getHash
-  return st
+checkHandShakeMsgAndForkNewThread st (h, peerName, peerPort) =
+  runMaybeT sendResponse >>=
+  \case
+    Nothing -> hClose h >> return st
+    Just ct -> forkPeerThreadWrap st ct peerName peerPort
+ 
+ where 
+    sendResponse = do
+      hash <- getHash h
+      (m,ct) <- MaybeT . return $ findHash st hash
+      liftIO $ sendHandShakeReply h m
+      return ct
 
-getHash :: Handle -> IO Maybe ByteString
-getHash = undefined
+getHash :: Handle -> MaybeT IO ByteString
+getHash h = MaybeT . return $ Nothing
 
 findHash :: ServerThread -> ByteString -> Maybe (Metainfo, ControlThread)
 findHash = undefined
 
-sendHandShakeReply :: ServerThread -> Handle -> Metainfo -> IO ()
+sendHandShakeReply :: Handle -> Metainfo -> IO ()
 sendHandShakeReply = undefined
 
-forkPeerThread :: ServerThread -> Peer -> ControlThread -> IO ServerThread
-forkPeerThread = undefined
+forkPeerThreadWrap :: ServerThread -> ControlThread -> HostName -> PortNumber -> IO ServerThread
+forkPeerThreadWrap = undefined
