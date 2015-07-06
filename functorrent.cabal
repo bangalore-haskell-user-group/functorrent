@@ -69,7 +69,9 @@ executable functorrent
                        network,
                        network-uri,
                        parsec,
-                       lens
+                       lens,
+                       transformers,
+                       unix
 
 test-suite functorrent-test
   type:              exitcode-stdio-1.0

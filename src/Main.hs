@@ -10,13 +10,19 @@ import Prelude hiding (log, length, readFile, writeFile)
 import Data.ByteString.Char8 (readFile, writeFile, unpack)
 import System.Environment (getArgs)
 import System.Directory (doesFileExist)
+import System.Posix.Signals (installHandler, Handler(Catch), sigINT, sigTERM)
 import Text.ParserCombinators.Parsec (ParseError)
+import Control.Lens
+import Control.Concurrent.MVar
+import Data.IORef
 
 import FuncTorrent.Bencode (decode)
 import FuncTorrent.Logger (initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
-import FuncTorrent.Peer (handShake, msgLoop)
+import FuncTorrent.Peer (handShake)
 import FuncTorrent.Tracker (tracker, peers, mkTrackerResponse)
+import FuncTorrent.ControlThread
+import FuncTorrent.ServerThread
 
 peerId :: String
 peerId = "-HS0001-*-*-20150215"
@@ -28,7 +34,7 @@ main = do
   let log = logMessage logR
   log "Starting up functorrent"
   log $ "Parsing input file " ++ concat args
-  parseTorrentFile args log >>= startTorrent log
+  parseTorrentFile args log >>= startTorrentConc log
   logStop logR
 
 usage :: IO ()
@@ -77,6 +83,26 @@ startTorrent log (m:_) = do
           return ()
 
 startTorrent _ [] = return ()
+
+startTorrentConc :: (String -> IO ()) -> [Metainfo] -> IO ()
+startTorrentConc log (m:ms) = do
+  -- Handle user-interrupt
+  interrupt <- newEmptyMVar
+  _ <- installHandler sigINT (Catch $ putMVar interrupt 1) Nothing
+  _ <- installHandler sigTERM (Catch $ putMVar interrupt 1) Nothing
+
+  -- Fork Control-Thread(s)
+  (ct,_) <- initControlThread m
+
+  -- Fork Server-Thread
+  (st,_) <- initServerThread [(m,ct)]
+
+  -- Wait For user-interrupt
+  _ <- takeMVar interrupt
+
+  -- Exit gracefully
+  writeIORef (st ^. serverTAction) FuncTorrent.ServerThread.Stop 
+  writeIORef (ct ^. controlTAction) FuncTorrent.ControlThread.Stop 
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e

@@ -4,6 +4,7 @@
 
 module FuncTorrent.ServerThread where
 
+import Control.Concurrent
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
 import Control.Lens
@@ -100,3 +101,11 @@ sendHandShakeReply = undefined
 
 forkPeerThreadWrap :: ServerThread -> ControlThread -> HostName -> PortNumber -> IO ServerThread
 forkPeerThreadWrap = undefined
+
+initServerThread :: [(Metainfo, ControlThread)] -> IO (ServerThread, ThreadId)
+initServerThread cts = do
+  a  <- newIORef FuncTorrent.ServerThread.Seed
+  let pn = 14560
+  let st = ServerThread [] [] [] pn 0 a
+  tid <- forkIO $ serverThreadMain st 
+  return (st, tid)

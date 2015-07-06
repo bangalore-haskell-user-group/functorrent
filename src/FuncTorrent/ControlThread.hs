@@ -18,6 +18,16 @@ import FuncTorrent.Peer
 import FuncTorrent.PeerThread
 import FuncTorrent.PeerThreadData
 
+data ControlThread = ControlThread {
+        _metaInfo           :: Metainfo
+    ,   _trackerResponses   :: [TrackerResponse]
+    ,   _peerList           :: [Peer]
+    ,   _peerThreads        :: [(PeerThread, ThreadId)]
+--    ,   _diskIO_Handle   :: Handle
+    ,   _controlTStatus     :: IORef ControlThreadStatus
+    ,   _controlTAction     :: IORef ControlThreadAction
+    }
+
 data ControlThreadStatus =
         Stopped
     |   Downloading
@@ -30,16 +40,6 @@ data ControlThreadAction =
     |   Seed
     |   Stop
   deriving (Eq, Show)
-
-data ControlThread = ControlThread {
-        _metaInfo           :: Metainfo
-    ,   _trackerResponses   :: [TrackerResponse]
-    ,   _peerList           :: [Peer]
-    ,   _peerThreads        :: [(PeerThread, ThreadId)]
---    ,   _diskIO_Handle   :: Handle
-    ,   _controlTStatus     :: IORef ControlThreadStatus
-    ,   _controlTAction     :: IORef ControlThreadAction
-    }
 
 makeLenses ''ControlThread
 
@@ -191,3 +191,11 @@ incrementalJobAssign = undefined
 
 filterBadPeers :: ControlThread -> IO ControlThread
 filterBadPeers = undefined
+
+initControlThread :: Metainfo -> IO (ControlThread, ThreadId)
+initControlThread m = do
+  st <- newIORef Stopped
+  a  <- newIORef Download
+  let ct = ControlThread m [] [] [] st a
+  tid <- forkIO $ controlThreadMain ct
+  return (ct, tid)
