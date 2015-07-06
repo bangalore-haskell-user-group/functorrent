@@ -7,6 +7,8 @@ module FuncTorrent.PeerThreadMain
 import Prelude hiding (readFile)
 
 import Control.Concurrent
+import Control.Monad hiding (
+    forM , forM_ , mapM , mapM_ , msum , sequence , sequence_ )
 import Control.Lens
 import Data.IORef
 
@@ -46,10 +48,9 @@ peerThreadMain pt = do
     StayIdle ->
       setStatus PeerReady
 
-    Stop -> do
-      stopDownload pt
-      return ()
-  peerThreadMain pt
+    Stop -> stopDownload pt
+
+  unless (toDoAction == Stop) $ peerThreadMain pt
 
  where setStatus = putMVar (pt^.peerTStatus)
        getAction = takeMVar (pt^.peerTAction)
@@ -64,7 +65,7 @@ startDownload pt = do
   writeIORef (pt^.downloadThread) (Just tid)
 
 stopDownload :: PeerThread -> IO ()
-stopDownload _ = undefined
+stopDownload pt = putStrLn $ "Stopping peer-thread " ++ show (pt^.peer)
 
 -- This will do the actual data communication with peer
 downloadData :: PeerThread -> IO ()
@@ -82,6 +83,8 @@ downloadData _ = undefined
 -- 3. Send bit-field message
 
 doHandShake :: PeerThread -> IO Bool
-doHandShake = undefined
+doHandShake pt = do
+  putStrLn $ "HandShake with " ++ show (pt^.peer)
+  return True
     -- timeout (10*1000*1000) handShake
 

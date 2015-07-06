@@ -41,18 +41,18 @@ import FuncTorrent.PeerThreadMain (peerThreadMain)
 -- The communication between control thread and peer thread is through
 -- status and action.
 
-defaultPeerState :: PeerState
-defaultPeerState = undefined
+-- defaultPeerState :: PeerState
+-- defaultPeerState = undefined
 
 initPeerThread :: Peer -> IO (PeerThread, ThreadId)
 initPeerThread p = do
   s <- newEmptyMVar
   a <- newEmptyMVar
-  i <- newIORef defaultPeerState
+  --i <- newIORef defaultPeerState
   t <- newEmptyMVar
   pcs <- newEmptyMVar
   d <- newIORef Nothing
-  let pt = PeerThread p i s a t pcs d
+  let pt = PeerThread p s a t pcs d
   tid <- forkIO $ peerThreadMain pt
   _ <- setPeerThreadAction InitPeerConnection pt
   return (pt, tid)

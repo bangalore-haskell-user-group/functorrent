@@ -14,6 +14,7 @@ import System.Posix.Signals (installHandler, Handler(Catch), sigINT, sigTERM)
 import Text.ParserCombinators.Parsec (ParseError)
 import Control.Lens
 import Control.Concurrent.MVar
+import Control.Concurrent
 import Data.IORef
 
 import FuncTorrent.Bencode (decode)
@@ -101,8 +102,10 @@ startTorrentConc log (m:ms) = do
   _ <- takeMVar interrupt
 
   -- Exit gracefully
-  writeIORef (st ^. serverTAction) FuncTorrent.ServerThread.Stop 
+  putMVar (st ^. serverTAction) FuncTorrent.ServerThread.Stop 
   writeIORef (ct ^. controlTAction) FuncTorrent.ControlThread.Stop 
+  yield
+  threadDelay $ 4*1000*1000
 
 logError :: ParseError -> (String -> IO ()) -> IO ()
 logError e logMsg = logMsg $ "parse error: \n" ++ show e

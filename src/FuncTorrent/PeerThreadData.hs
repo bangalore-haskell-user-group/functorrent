@@ -6,13 +6,11 @@ module FuncTorrent.PeerThreadData where
 import Control.Concurrent
 import Control.Lens
 import Data.IORef
-import Data.ByteString (ByteString)
 
 import FuncTorrent.Peer
 
 data PeerThread = PeerThread {
         _peer               :: Peer
-    ,   _peerState          :: IORef PeerState
     ,   _peerTStatus        :: MVar PeerThreadStatus
     ,   _peerTAction        :: MVar PeerThreadAction
     ,   _transferStats      :: MVar TransferStats
@@ -37,8 +35,6 @@ data PeerThreadAction =
     |   StayIdle
     |   Stop
   deriving (Eq,Show)
-
-type PeerStatus = ByteString
 
 type Piece = Int
 

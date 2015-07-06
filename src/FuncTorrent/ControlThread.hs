@@ -10,7 +10,7 @@ import Data.IORef
 import Control.Monad hiding (
     forM , forM_ , mapM , mapM_ , msum , sequence , sequence_ )
 
-import FuncTorrent.Tracker (TrackerResponse(..), tracker, mkTrackerResponse)
+import FuncTorrent.Tracker (TrackerResponse(..), tracker, mkTrackerResponse, peers)
 import FuncTorrent.Bencode (decode)
 import FuncTorrent.Metainfo (Metainfo(..))
 
@@ -65,8 +65,9 @@ controlThreadMain ct =
 
 doInitialization :: ControlThread -> IO ControlThread
 doInitialization ct =
-  let peerInit = take 10 $ ct^.peerList
-  in foldM forkPeerThread ct peerInit
+  getTrackerResponse ct >>= \x ->
+  let peerInit = take 4 $ x^.peerList
+  in foldM forkPeerThread x peerInit
 
 mainLoop :: ControlThread -> IO ControlThread
 mainLoop ct =
@@ -81,14 +82,17 @@ mainLoop ct =
   checkAction
 
  where
-     checkAction ct1 = do
-         action <- readIORef $ view controlTAction ct1
-         case action of
-              FuncTorrent.ControlThread.Stop -> return ct1
-              _ -> mainLoop ct1
+   checkAction ct1 = do
+     putStrLn "Check action"
+     threadDelay $ 4*1000*1000
+     action <- readIORef $ view controlTAction ct1
+     case action of
+       FuncTorrent.ControlThread.Stop -> return ct1
+       _ -> mainLoop ct1
 
 doExit :: ControlThread -> IO ()
 doExit ct = do
+  putStrLn "Doing control-thread exit"
   let peerTs = ct ^. peerThreads
   -- let the peer threads stop themselves
   mapM_ ((setPeerThreadAction FuncTorrent.PeerThreadData.Stop).fst) peerTs
@@ -117,7 +121,7 @@ doExit ct = do
 
 getTrackerResponse :: ControlThread -> IO ControlThread
 getTrackerResponse ct = do
-  response <- tracker (ct^.metaInfo) "temp-peer-id"
+  response <- tracker (ct^.metaInfo) "-HS0001-*-*-20150215"
  
   -- TODO: Write to ~/.functorrent/caches
   -- writeFile (name (info m) ++ ".cache") response
@@ -125,10 +129,12 @@ getTrackerResponse ct = do
   case decode response of
     Right trackerInfo ->
         case mkTrackerResponse trackerInfo of
-          Right trackerResp -> 
-            return (trackerResponses %~ (trackerResp : ) $ ct)
-          Left _ -> undefined --log error
-    Left _ -> undefined --log error
+          Right trackerResp ->
+            let ct1 = trackerResponses %~ (trackerResp : ) $ ct
+                ct2 = peerList %~ ((peers trackerResp) ++) $ ct1
+            in return ct2
+          Left _ -> putStrLn "mkTracker error" >> return ct
+    Left _ -> putStrLn "tracker resp decode error" >> return ct
 
 -- Forks a peer-thread and add it to the peerThreads list
 forkPeerThread :: ControlThread -> Peer -> IO ControlThread
@@ -145,12 +151,14 @@ killPeerThread _ _ = undefined
 
 pieceManagement :: ControlThread -> IO ControlThread
 pieceManagement ct = do
-  let peerTs = map fst $ ct^.peerThreads
-  s <- getIncrementalPeerThreadStatus peerTs
-  p <- samplePieceAvailability peerTs
-  let u = incrementalJobAssign s p []
-  do updatePeerPieceQueue u
-     return ct
+  putStrLn "Doing Piece Management"
+  return ct
+  --let peerTs = map fst $ ct^.peerThreads
+  --s <- getIncrementalPeerThreadStatus peerTs
+  --p <- samplePieceAvailability peerTs
+  --let u = incrementalJobAssign s p []
+  --do updatePeerPieceQueue u
+  --   return ct
 
 updatePeerPieceQueue :: [(PeerThread, [Piece])] -> IO ()
 updatePeerPieceQueue =
@@ -180,17 +188,17 @@ samplePieceAvailability = mapM (\x -> do
 -- Uses the piece availability to distribute the download jobs to peers
 -- This should be used to initialize the job distribution
 initialJobAssign :: [(PeerThread, [Piece])] -> [(PeerThread, [Piece])]
-initialJobAssign = undefined
+initialJobAssign p = p 
 
 -- Take the initial job assignment, availability and the progress 
 -- of each peer to decide incremental job distribution.
 -- This API also need to do load-balancing
 -- Additionaly this can also compute the peer ranking
 incrementalJobAssign :: [(PeerThread, [Piece])] -> [(PeerThread, [Piece])] -> [(PeerThread, [Piece])] -> [(PeerThread, [Piece])]
-incrementalJobAssign = undefined
+incrementalJobAssign p _ _ = p
 
 filterBadPeers :: ControlThread -> IO ControlThread
-filterBadPeers = undefined
+filterBadPeers ct = putStrLn "FilterBadPeer" >> return ct
 
 initControlThread :: Metainfo -> IO (ControlThread, ThreadId)
 initControlThread m = do

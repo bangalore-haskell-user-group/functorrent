@@ -9,7 +9,6 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
 import Control.Lens
 import Data.ByteString (ByteString)
-import Data.IORef
 import System.IO
 import Network
 
@@ -36,12 +35,13 @@ import FuncTorrent.ControlThread
 --
 
 data ServerThread = ServerThread {
-        _activeTorrents     ::  [(Metainfo, ControlThread)]
-    ,   _blockedPeers       ::  [Peer]
-    ,   _activeTransfers    ::  [(Peer, PeerThread)]
+        _activeTorrents     ::  MVar [(Metainfo, ControlThread)]
+    ,   _blockedPeers       ::  MVar [Peer]
+    ,   _activeTransfers    ::  MVar [(Peer, PeerThread)]
+    ,   _listenThread       ::  MVar ThreadId
     ,   _listenPortNum      ::  PortNumber
     ,   _serverTStatus      ::  Int
-    ,   _serverTAction      ::  IORef ServerThreadAction
+    ,   _serverTAction      ::  MVar ServerThreadAction
     }
 
 data ServerThreadAction =
@@ -53,28 +53,43 @@ data ServerThreadAction =
 makeLenses ''ServerThread
 
 serverThreadMain :: ServerThread -> IO ()
-serverThreadMain st = serverMainLoop st >>= serverExit
- where serverExit = undefined
+serverThreadMain st = serverInit st >>= serverMainLoop >>= serverExit
+ where serverExit st1 = do
+         tid <- takeMVar (st1^.listenThread)
+         killThread tid
+         putStrLn "Exiting server-thread"
+
+serverInit :: ServerThread -> IO ServerThread
+serverInit st = do
+  tid <- forkIO $ listenAndReply st
+  putMVar (st^.listenThread) tid
+  return st
 
 serverMainLoop :: ServerThread -> IO ServerThread
-serverMainLoop st =
-  listenOn (PortNumber (st ^. listenPortNum)) >>= accept >>=
-  checkHandShakeMsgAndForkNewThread st >>= handleAction
+serverMainLoop =
+  handleAction
 
  where 
     handleAction st1 =
-      readIORef (st1 ^. serverTAction) >>=
+      takeMVar (st1 ^. serverTAction) >>=
       \case
         FuncTorrent.ServerThread.Seed -> 
           serverMainLoop st1
-        AddTorrent t ->
-          let st2 = activeTorrents %~ (t :) $ st1
-          in serverMainLoop st2
-        RemoveTorrent m ->
-          let st2 = activeTorrents %~ filter ((/=m).fst) $ st1
-          in serverMainLoop st2
+        AddTorrent t -> do
+          a <- readMVar (st1^.activeTorrents)
+          putMVar (st1^.activeTorrents) (t:a)
+          serverMainLoop st1
+        RemoveTorrent m -> do
+          a <- readMVar (st1^.activeTorrents)
+          let a1 = filter ((/=m).fst) a
+          putMVar (st1^.activeTorrents) a1
+          serverMainLoop st1
         FuncTorrent.ServerThread.Stop -> return st1
 
+listenAndReply :: ServerThread -> IO ()
+listenAndReply st =
+  listenOn (PortNumber (st ^. listenPortNum)) >>= accept >>=
+  checkHandShakeMsgAndForkNewThread st >>= listenAndReply
 
 checkHandShakeMsgAndForkNewThread :: ServerThread -> (Handle, HostName, PortNumber) -> IO ServerThread
 checkHandShakeMsgAndForkNewThread st (h, peerName, peerPort) =
@@ -104,8 +119,12 @@ forkPeerThreadWrap = undefined
 
 initServerThread :: [(Metainfo, ControlThread)] -> IO (ServerThread, ThreadId)
 initServerThread cts = do
-  a  <- newIORef FuncTorrent.ServerThread.Seed
+  mv1 <- newEmptyMVar
+  mv2 <- newEmptyMVar
+  mv3 <- newEmptyMVar
+  mv4 <- newEmptyMVar
+  mv5 <- newEmptyMVar
   let pn = 14560
-  let st = ServerThread [] [] [] pn 0 a
+  let st = ServerThread mv1 mv2 mv3 mv4 pn 0 mv5
   tid <- forkIO $ serverThreadMain st 
   return (st, tid)
