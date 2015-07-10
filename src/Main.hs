@@ -48,7 +48,7 @@ parseTorrentFile [a] log = do
     then readFile a >>= getMetaInfo
     else error "file does not exist"
 
- where 
+ where
    getMetaInfo torrentStr =
     case decode torrentStr of
       Left e -> logError e log >> return []
@@ -102,8 +102,8 @@ startTorrentConc log (m:ms) = do
   _ <- takeMVar interrupt
 
   -- Exit gracefully
-  putMVar (st ^. serverTAction) FuncTorrent.ServerThread.Stop 
-  writeIORef (ct ^. controlTAction) FuncTorrent.ControlThread.Stop 
+  putMVar (st ^. serverTAction) FuncTorrent.ServerThread.Stop
+  writeIORef (ct ^. controlTAction) FuncTorrent.ControlThread.Stop
   yield
   threadDelay $ 4*1000*1000
 

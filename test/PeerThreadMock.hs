@@ -41,5 +41,5 @@ peerThreadMain pt = do
 
   peerThreadMain pt
 
- where setStatus = putMVar (pt^.status)
-       getAction = takeMVar (pt^.action)
+ where setStatus = putMVar (pt^.peerTStatus)
+       getAction = takeMVar (pt^.peerTAction)
