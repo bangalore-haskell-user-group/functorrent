@@ -49,7 +49,8 @@ library
                        tasty,
                        tasty-hunit,
                        lens,
-                       transformers
+                       transformers,
+                       unix
 
 executable functorrent
   main-is:             Main.hs
