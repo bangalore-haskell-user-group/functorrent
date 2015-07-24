@@ -61,7 +61,7 @@ testMkMetaInfo :: TestTree
 testMkMetaInfo = testCase "Should mkInfo valid torrent files" $ do
                    str <- readFile "./data/hello.txt.torrent"
                    case decode str of
-                     Right expected -> mkMetaInfo expected @?= Just hello
+                     Right expected -> mkMetaInfo expected @?= Right hello
                      Left _ -> error "Failed parsing test file"
 
 testResponse1 :: TestTree

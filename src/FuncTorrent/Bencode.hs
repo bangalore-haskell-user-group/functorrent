@@ -145,8 +145,10 @@ bencVal = Bstr <$> bencStr <|>
           Blist <$> bencList <|>
           Bdict <$> bencDict
 
-decode :: ByteString -> Either ParseError BVal
-decode = parse bencVal "BVal"
+decode :: ByteString -> Either String BVal
+decode bs = case (parse bencVal "BVal" bs) of
+           Left e -> Left "Unable to parse torrent file"
+           Right torrent -> Right torrent
 
 -- Encode BVal into a bencoded ByteString. Inverse of decode
 

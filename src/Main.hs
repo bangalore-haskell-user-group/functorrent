@@ -7,15 +7,17 @@
 module Main where
 
 import Prelude hiding (log, length, readFile, writeFile)
+
+import Control.Concurrent
+import Control.Concurrent.MVar
+import Control.Lens
+import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (readFile, writeFile, unpack)
-import System.Environment (getArgs)
+import Data.IORef
 import System.Directory (doesFileExist)
+import System.Environment (getArgs)
 import System.Posix.Signals (installHandler, Handler(Catch), sigINT, sigTERM)
 import Text.ParserCombinators.Parsec (ParseError)
-import Control.Lens
-import Control.Concurrent.MVar
-import Control.Concurrent
-import Data.IORef
 
 import FuncTorrent.Bencode (decode)
 import FuncTorrent.Logger (Log, initLogger, logMessage, logError, logStop)
@@ -35,30 +37,31 @@ main = do
   let log = logMessage logR
   log "Starting up functorrent"
   log $ "Parsing input file " ++ concat args
-  parseTorrentFile log args >>= startTorrentConc log
+
+  case args of
+    [file] -> do
+              minfo <- parseTorrentFile log file
+              case minfo of
+                Right m -> startTorrentConc log m
+                Left err -> log err
+    [] -> usage
+
   logStop logR
 
 usage :: IO ()
-usage = putStrLn "usage: functorrent torrent-file"
+usage = putStrLn "Usage: functorrent torrent-file"
 
-parseTorrentFile :: Log -> [String] -> IO [Metainfo]
-parseTorrentFile log [a] = do
-  fileExist <- doesFileExist a
+
+parseTorrentFile :: Log -> String -> IO (Either String Metainfo)
+parseTorrentFile log file = do
+  fileExist <- doesFileExist file
   if fileExist
-    then readFile a >>= getMetaInfo
-    else error "file does not exist"
+    then readFile file >>= return . getMetaInfo
+    else return $ Left "File does not exist"
 
  where
-   getMetaInfo torrentStr =
-    case decode torrentStr of
-      Left e -> logError log e >> return []
-      Right d ->
-        case mkMetaInfo d of
-          Nothing -> log "Unable to make meta info file"
-                        >> return []
-          Just m -> return [m]
-
-parseTorrentFile _ _ = usage >> return []
+   getMetaInfo :: ByteString -> Either String Metainfo
+   getMetaInfo torrentStr = decode torrentStr >>= mkMetaInfo
 
 startTorrent :: Log -> [Metainfo] -> IO ()
 startTorrent log (m:_) = do
@@ -85,8 +88,8 @@ startTorrent log (m:_) = do
 
 startTorrent _ [] = return ()
 
-startTorrentConc :: Log -> [Metainfo] -> IO ()
-startTorrentConc log (m:ms) = do
+startTorrentConc :: Log -> Metainfo -> IO ()
+startTorrentConc log m = do
   -- Handle user-interrupt
   interrupt <- newEmptyMVar
   _ <- installHandler sigINT (Catch $ putMVar interrupt 1) Nothing
