@@ -1,6 +1,8 @@
 module FuncTorrent.Logger (
-      initLogger
+      Log
+    , initLogger
     , logMessage
+    , logError
     , logStop
     ) where
 
@@ -19,6 +21,8 @@ import Control.Concurrent
 data Logger = Logger (MVar LogCommand)
 data LogCommand = Message String | Stop (MVar ())
 
+type Log = String -> IO ()
+
 initLogger :: IO Logger
 initLogger = do
     m <- newEmptyMVar
@@ -29,6 +33,7 @@ initLogger = do
 logger :: Logger -> IO ()
 logger (Logger m) = loop
     where
+        loop :: IO ()
         loop = do
             cmd <- takeMVar m
             case cmd of
@@ -42,8 +47,11 @@ logger (Logger m) = loop
                      putMVar s ()
 
 -- Send log message to logger
-logMessage :: Logger -> String -> IO ()
+logMessage :: Logger -> Log
 logMessage (Logger m) s = putMVar m (Message s)
+
+logError :: Show e => Log -> e-> IO ()
+logError logM e = logM $ "Error: \n" ++ show e
 
 logStop :: Logger -> IO ()
 logStop (Logger m) = do

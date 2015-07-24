@@ -18,7 +18,7 @@ import Control.Concurrent
 import Data.IORef
 
 import FuncTorrent.Bencode (decode)
-import FuncTorrent.Logger (initLogger, logMessage, logStop)
+import FuncTorrent.Logger (Log, initLogger, logMessage, logError, logStop)
 import FuncTorrent.Metainfo (Info(..), Metainfo(..), mkMetaInfo)
 import FuncTorrent.Peer (handShake)
 import FuncTorrent.Tracker (tracker, peers, mkTrackerResponse)
@@ -35,14 +35,14 @@ main = do
   let log = logMessage logR
   log "Starting up functorrent"
   log $ "Parsing input file " ++ concat args
-  parseTorrentFile args log >>= startTorrentConc log
+  parseTorrentFile log args >>= startTorrentConc log
   logStop logR
 
 usage :: IO ()
 usage = putStrLn "usage: functorrent torrent-file"
 
-parseTorrentFile :: [String] -> (String -> IO ()) -> IO [Metainfo]
-parseTorrentFile [a] log = do
+parseTorrentFile :: Log -> [String] -> IO [Metainfo]
+parseTorrentFile log [a] = do
   fileExist <- doesFileExist a
   if fileExist
     then readFile a >>= getMetaInfo
@@ -51,7 +51,7 @@ parseTorrentFile [a] log = do
  where
    getMetaInfo torrentStr =
     case decode torrentStr of
-      Left e -> logError e log >> return []
+      Left e -> logError log e >> return []
       Right d ->
         case mkMetaInfo d of
           Nothing -> log "Unable to make meta info file"
@@ -60,7 +60,7 @@ parseTorrentFile [a] log = do
 
 parseTorrentFile _ _ = usage >> return []
 
-startTorrent :: (String -> IO ()) -> [Metainfo] -> IO ()
+startTorrent :: Log -> [Metainfo] -> IO ()
 startTorrent log (m:_) = do
   log "Input File OK"
   log $ "Downloading file : " ++ name (info m)
@@ -72,7 +72,7 @@ startTorrent log (m:_) = do
   -- TODO: Write to ~/.functorrent/caches
   writeFile (name (info m) ++ ".cache") response
   case decode response of
-    Left e -> logError e log
+    Left e -> logError log e
     Right trackerInfo ->
       case mkTrackerResponse trackerInfo of
         Left e -> log $ "Error" ++ unpack e
@@ -85,7 +85,7 @@ startTorrent log (m:_) = do
 
 startTorrent _ [] = return ()
 
-startTorrentConc :: (String -> IO ()) -> [Metainfo] -> IO ()
+startTorrentConc :: Log -> [Metainfo] -> IO ()
 startTorrentConc log (m:ms) = do
   -- Handle user-interrupt
   interrupt <- newEmptyMVar
@@ -106,6 +106,3 @@ startTorrentConc log (m:ms) = do
   writeIORef (ct ^. controlTAction) FuncTorrent.ControlThread.Stop
   yield
   threadDelay $ 4*1000*1000
-
-logError :: ParseError -> (String -> IO ()) -> IO ()
-logError e logMsg = logMsg $ "parse error: \n" ++ show e
