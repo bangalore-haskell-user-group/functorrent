@@ -46,7 +46,7 @@ mkInfo (Bdict m) = let (Bint pieceLength') = m ! "piece length"
                                 , md5sum = md5sum'}
 mkInfo _ = Nothing
 
-mkMetaInfo :: BVal   -> Maybe Metainfo
+mkMetaInfo :: BVal   -> Either String Metainfo
 mkMetaInfo (Bdict m)  =
     let (Just info')  = mkInfo $ m ! "info"
         announce'     = lookup "announce" m
@@ -55,7 +55,7 @@ mkMetaInfo (Bdict m)  =
         comment'      = lookup "comment" m
         createdBy'    = lookup "created by" m
         encoding'     = lookup "encoding" m
-    in Just Metainfo {
+    in Right Metainfo {
              info         = info'
            , announceList = maybeToList (announce' >>= bstrToString)
                             ++ getAnnounceList announceList'
@@ -66,7 +66,7 @@ mkMetaInfo (Bdict m)  =
            , infoHash     = hash . encode $ (m ! "info")
         }
 
-mkMetaInfo _ = Nothing
+mkMetaInfo _ = Left "Unable to make Metainfo. Corrupt BString"
 
 getAnnounceList :: Maybe BVal -> [String]
 getAnnounceList Nothing = []
