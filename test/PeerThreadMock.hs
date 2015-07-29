@@ -1,26 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module PeerThreadMock 
-  ( peerThreadMain 
-  ) where
+module PeerThreadMock
+    (
+     peerThreadMain
+    ) where
 
 import Prelude hiding (readFile)
 
--- import Test.Tasty.HUnit (testCase, (@?=))
--- 
--- import FuncTorrent.ControlThread
-
 import Control.Concurrent
-import Control.Lens
-import System.Timeout
-import Data.IORef
-import System.IO
 
 import FuncTorrent.PeerThreadData
 
 peerThreadMain :: PeerThread -> IO ()
 peerThreadMain pt = do
   toDoAction <- getAction
+  -- TODO: Non exhaustive pattern match
   case toDoAction of
     InitPeerConnection -> do
       threadDelay $ 1000*1000
@@ -30,7 +24,7 @@ peerThreadMain pt = do
       threadDelay $ 1000*1000
       setStatus PeerReady
 
-    GetPieces piece ->
+    GetPieces _ ->
       setStatus Downloading
 
     Seed ->
@@ -41,5 +35,5 @@ peerThreadMain pt = do
 
   peerThreadMain pt
 
- where setStatus = putMVar (pt^.peerTStatus)
-       getAction = takeMVar (pt^.peerTAction)
+ where setStatus = putMVar (peerTStatus pt)
+       getAction = takeMVar (peerTAction pt)

@@ -1,55 +1,54 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
+module FuncTorrent.PeerThreadData
+    (PeerThread(..),
+     PeerThreadAction(..),
+     PeerThreadStatus(..),
+     Piece,
+     TransferStats(..)
+    ) where
 
-module FuncTorrent.PeerThreadData where
-
-import Control.Concurrent
-import Control.Lens
-import Data.IORef
+import Control.Concurrent (MVar, ThreadId)
+import Data.IORef (IORef)
 
 import FuncTorrent.Peer
 
-data PeerThread = PeerThread {
-        _peer               :: Peer
-    ,   _peerTStatus        :: MVar PeerThreadStatus
-    ,   _peerTAction        :: MVar PeerThreadAction
-    ,   _transferStats      :: MVar TransferStats
-    ,   _peerPieces         :: MVar [Piece]
-    ,   _downloadThread     :: IORef (Maybe ThreadId)
-    }
-
-data PeerThreadStatus = 
-        PeerCommError
-    |   InitDone
-    |   PeerReady
-    |   PeerBusy
-    |   Downloading
-    |   Seeding
-  deriving (Eq,Show)
-
-data PeerThreadAction =
-        InitPeerConnection
-    |   GetPeerStatus
-    |   GetPieces [Piece]
-    |   Seed
-    |   StayIdle
-    |   Stop
-  deriving (Eq,Show)
-
 type Piece = Int
 
--- DownloadedInc has Pieces which were downloaded 
--- after the last status fetch from ControlThread
-data TransferStats = TransferStats {
-        _activePieces       ::  [Piece]
-    ,   _downloadedInc      ::  [Piece]
-    ,   _downloaded         ::  [Piece]
-    ,   _queuePieces        ::  [Piece]
-    ,   _dataRecieved       ::  Int
-    ,   _dataSent           ::  Int
-    ,   _totalDataR         ::  Int
-    ,   _totalDataS         ::  Int
+data PeerThreadStatus
+    = PeerCommError
+    | InitDone
+    | PeerReady
+    | PeerBusy
+    | Downloading
+    | Seeding
+    deriving (Eq,Show)
+
+data PeerThreadAction
+    = InitPeerConnection
+    | GetPeerStatus
+    | GetPieces [Piece]
+    | Seed
+    | StayIdle
+    | Stop
+    deriving (Eq,Show)
+
+data PeerThread = PeerThread
+    { peer           :: Peer
+    , peerTStatus    :: MVar PeerThreadStatus
+    , peerTAction    :: MVar PeerThreadAction
+    , transferStats  :: MVar TransferStats
+    , peerPieces     :: MVar [Piece]
+    , downloadThread :: IORef (Maybe ThreadId)
     }
 
-makeLenses ''PeerThread
-makeLenses ''TransferStats
+data TransferStats = TransferStats
+    { activePieces  :: [Piece]
+    -- | Pieces which were downloaded after the last status fetch from
+    -- ControlThread
+    , downloadedInc :: [Piece]
+    , downloaded    :: [Piece]
+    , queuePieces   :: [Piece]
+    , dataRecieved  :: Int
+    , dataSent      :: Int
+    , totalDataR    :: Int
+    , totalDataS    :: Int
+    }

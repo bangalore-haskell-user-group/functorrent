@@ -8,7 +8,6 @@ module FuncTorrent.PeerThread where
 -- For each peer a separate instance of PeerThread is used
 
 import Control.Concurrent
-import Control.Lens
 import Data.IORef
 
 import FuncTorrent.Peer
@@ -21,19 +20,19 @@ import FuncTorrent.PeerThreadMain (peerThreadMain)
 #endif
 
 
--- PeerThread is responsible for 
+-- PeerThread is responsible for
 -- 1. Hand-shake with peer
 -- 2. Keeping track of peer state and managing our state with peer.
 --    This includes the choke/interested status and have properties.
---    
+--
 -- 3. Initiate request to get data.
 --    The main thread will allocate a bunch of blocks for fetching from the peer.
---    
+--
 -- 4. Respond to data-request.
 --    Algo to manage data-request
 --
 -- 5. Do data checking and disk IO. (Disk IO might be handled in a separate thread?)
--- 
+--
 -- 6. If needed, keep the connection alive.
 --
 
@@ -65,10 +64,10 @@ stopPeerThread _ = undefined
 -- Control thread will get status from this API
 -- It should not block due to Peer-Thread
 getPeerThreadStatus :: PeerThread -> IO (Maybe PeerThreadStatus)
-getPeerThreadStatus pt = tryReadMVar $ pt^.peerTStatus
+getPeerThreadStatus pt = tryReadMVar $ (peerTStatus pt)
 
 
 -- Peer Thread may block, if no action is recieved from Control-thread
 -- It may also kill itself if no communication from Control-thread for some time.
 setPeerThreadAction :: PeerThreadAction -> PeerThread -> IO Bool
-setPeerThreadAction a pt = tryPutMVar (pt^.peerTAction) a
+setPeerThreadAction a pt = tryPutMVar (peerTAction pt) a

@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE LambdaCase #-}
 
 module FuncTorrent.ServerThread where
@@ -7,17 +6,14 @@ module FuncTorrent.ServerThread where
 import Control.Concurrent
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
-import Control.Lens
 import Data.ByteString (ByteString)
 import System.IO
 import Network
-
 
 import FuncTorrent.Metainfo (Metainfo(..))
 import FuncTorrent.Peer
 import FuncTorrent.PeerThreadData
 import FuncTorrent.ControlThread
-
 
 -- Torrent Server thread
 -- This thread has reposibility to serve all incoming requests
@@ -30,66 +26,63 @@ import FuncTorrent.ControlThread
 --
 -- 3. Handle data request messages - For this create a PeerThread
 --    and let it upload.
---
--- 4. 
---
 
-data ServerThread = ServerThread {
-        _activeTorrents     ::  MVar [(Metainfo, ControlThread)]
-    ,   _blockedPeers       ::  MVar [Peer]
-    ,   _activeTransfers    ::  MVar [(Peer, PeerThread)]
-    ,   _listenThread       ::  MVar ThreadId
-    ,   _listenPortNum      ::  PortNumber
-    ,   _serverTStatus      ::  Int
-    ,   _serverTAction      ::  MVar ServerThreadAction
+data ServerThread = ServerThread
+    { activeTorrents  :: MVar [(Metainfo, ControlThread)]
+    , blockedPeers    :: MVar [Peer]
+    , activeTransfers :: MVar [(Peer, PeerThread)]
+    , listenThread    :: MVar ThreadId
+    , listenPortNum   :: PortNumber
+    , serverTStatus   :: Int
+    , serverTAction   :: MVar ServerThreadAction
     }
 
-data ServerThreadAction =
-        Seed
-    |   AddTorrent (Metainfo, ControlThread)
-    |   RemoveTorrent Metainfo
-    |   Stop
-
-makeLenses ''ServerThread
+data ServerThreadAction
+    = Seed
+    | AddTorrent (Metainfo, ControlThread)
+    | RemoveTorrent Metainfo
+    | Stop
 
 serverThreadMain :: ServerThread -> IO ()
 serverThreadMain st = serverInit st >>= serverMainLoop >>= serverExit
  where serverExit st1 = do
-         tid <- takeMVar (st1^.listenThread)
+         tid <- takeMVar (listenThread st1)
          killThread tid
          putStrLn "Exiting server-thread"
 
 serverInit :: ServerThread -> IO ServerThread
 serverInit st = do
   tid <- forkIO $ listenAndReply st
-  putMVar (st^.listenThread) tid
+  putMVar (listenThread st) tid
   return st
 
 serverMainLoop :: ServerThread -> IO ServerThread
 serverMainLoop =
   handleAction
 
- where 
+ where
     handleAction st1 =
-      takeMVar (st1 ^. serverTAction) >>=
+      takeMVar (serverTAction st1) >>=
       \case
-        FuncTorrent.ServerThread.Seed -> 
+        FuncTorrent.ServerThread.Seed ->
           serverMainLoop st1
         AddTorrent t -> do
-          a <- readMVar (st1^.activeTorrents)
-          putMVar (st1^.activeTorrents) (t:a)
+          a <- readMVar (activeTorrents st1)
+          putMVar (activeTorrents st1) (t : a)
           serverMainLoop st1
         RemoveTorrent m -> do
-          a <- readMVar (st1^.activeTorrents)
+          a <- readMVar (activeTorrents st1)
           let a1 = filter ((/=m).fst) a
-          putMVar (st1^.activeTorrents) a1
+          putMVar (activeTorrents st1) a1
           serverMainLoop st1
         FuncTorrent.ServerThread.Stop -> return st1
 
 listenAndReply :: ServerThread -> IO ()
 listenAndReply st =
-  listenOn (PortNumber (st ^. listenPortNum)) >>= accept >>=
-  checkHandShakeMsgAndForkNewThread st >>= listenAndReply
+  listenOn (PortNumber (listenPortNum st)) >>=
+  accept >>=
+  checkHandShakeMsgAndForkNewThread st >>=
+  listenAndReply
 
 checkHandShakeMsgAndForkNewThread :: ServerThread -> (Handle, HostName, PortNumber) -> IO ServerThread
 checkHandShakeMsgAndForkNewThread st (h, peerName, peerPort) =
@@ -97,8 +90,8 @@ checkHandShakeMsgAndForkNewThread st (h, peerName, peerPort) =
   \case
     Nothing -> hClose h >> return st
     Just ct -> forkPeerThreadWrap st ct peerName peerPort
- 
- where 
+
+ where
     sendResponse = do
       hash <- getHash h
       (m,ct) <- MaybeT . return $ findHash st hash
@@ -106,7 +99,7 @@ checkHandShakeMsgAndForkNewThread st (h, peerName, peerPort) =
       return ct
 
 getHash :: Handle -> MaybeT IO ByteString
-getHash h = MaybeT . return $ Nothing
+getHash _ = MaybeT . return $ Nothing
 
 findHash :: ServerThread -> ByteString -> Maybe (Metainfo, ControlThread)
 findHash = undefined
@@ -118,7 +111,7 @@ forkPeerThreadWrap :: ServerThread -> ControlThread -> HostName -> PortNumber ->
 forkPeerThreadWrap = undefined
 
 initServerThread :: [(Metainfo, ControlThread)] -> IO (ServerThread, ThreadId)
-initServerThread cts = do
+initServerThread _ = do
   mv1 <- newEmptyMVar
   mv2 <- newEmptyMVar
   mv3 <- newEmptyMVar
@@ -126,5 +119,5 @@ initServerThread cts = do
   mv5 <- newEmptyMVar
   let pn = 14560
   let st = ServerThread mv1 mv2 mv3 mv4 pn 0 mv5
-  tid <- forkIO $ serverThreadMain st 
+  tid <- forkIO $ serverThreadMain st
   return (st, tid)

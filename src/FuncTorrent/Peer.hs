@@ -17,7 +17,7 @@ import Data.Binary (Binary(..), decode)
 import Data.Binary.Put (putWord32be, putWord16be, putWord8)
 import Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
 import Control.Monad (replicateM, liftM, forever)
-import Control.Applicative ((<$>), liftA3)
+import Control.Applicative (liftA3)
 
 type ID = String
 type IP = String
@@ -29,22 +29,14 @@ data PeerState = PeerState { handle :: Handle
                            , peer_choking :: Bool
                            , peer_interested :: Bool}
 
--- Maintain info on every piece and the current state of it.
--- should probably be a TVar.
-type Pieces = [PieceData]
-
 data PieceState = Pending
                 | InProgress
                 | Have
                 deriving (Show)
 
-data PieceData = PieceData { index :: Int           -- ^ Piece number
-                           , peers :: [Peer]        -- ^ list of peers who have this piece
-                           , state :: PieceState }  -- ^ state of the piece from download perspective.
-
 -- | Peer is a PeerID, IP address, port tuple
 data Peer = Peer ID IP Port
-          deriving (Show, Eq)
+            deriving (Show, Eq)
 
 data PeerMsg = KeepAliveMsg
              | ChokeMsg

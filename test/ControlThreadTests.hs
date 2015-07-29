@@ -2,27 +2,16 @@
 
 module ControlThreadTests where
 
-import Prelude hiding (readFile)
-import Control.Lens
-import System.IO
-import Control.Concurrent
-
--- import Test.Tasty.HUnit (testCase, (@?=))
-
 import FuncTorrent.ControlThread hiding (controlThreadMain)
-import FuncTorrent.Peer
-import FuncTorrent.PeerThread
-import FuncTorrent.PeerThreadData
-import PeerThreadMock
 
 doTests :: IO ()
 doTests = putStrLn "Not Implemented"
 
 controlThreadMain :: ControlThread -> IO ()
-controlThreadMain ct = undefined
+controlThreadMain _ = undefined
 
-        -- controlThreadMain ct2
-    -- If PeerThread is busy status will be Nothing
+-- controlThreadMain ct2
+-- If PeerThread is busy status will be Nothing
 
 
 -- Control activity of Peer-Threads

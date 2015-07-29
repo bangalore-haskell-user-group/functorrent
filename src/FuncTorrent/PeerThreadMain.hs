@@ -1,15 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module FuncTorrent.PeerThreadMain
-  ( peerThreadMain 
+  ( peerThreadMain
   ) where
 
 import Prelude hiding (readFile)
 
 import Control.Concurrent
-import Control.Monad hiding (
-    forM , forM_ , mapM , mapM_ , msum , sequence , sequence_ )
-import Control.Lens
+import Control.Monad hiding (forM, forM_, mapM, mapM_, msum, sequence, sequence_)
 import Data.IORef
 
 import FuncTorrent.PeerThreadData
@@ -18,7 +16,7 @@ import FuncTorrent.PeerThreadData
 -- 1. Initiate hand-shake and set bit field?
 -- 2. Send peer our status (choked/interested)
 -- 3. Wait for peer status.
--- 4. If the peer is interested, then do further communication. 
+-- 4. If the peer is interested, then do further communication.
 --    Else show that we are interested and wait.
 -- 5. Send the 'have' message.
 -- 6. Recieve the 'have' message.
@@ -52,8 +50,8 @@ peerThreadMain pt = do
 
   unless (toDoAction == Stop) $ peerThreadMain pt
 
- where setStatus = putMVar (pt^.peerTStatus)
-       getAction = takeMVar (pt^.peerTAction)
+ where setStatus = putMVar (peerTStatus pt)
+       getAction = takeMVar (peerTAction pt)
 
 -- Fork a thread to get pieces from the peer.
 -- The incoming requests from this peer will be handled
@@ -62,10 +60,10 @@ peerThreadMain pt = do
 startDownload :: PeerThread -> IO ()
 startDownload pt = do
   tid <- forkIO $ downloadData pt
-  writeIORef (pt^.downloadThread) (Just tid)
+  writeIORef (downloadThread pt) (Just tid)
 
 stopDownload :: PeerThread -> IO ()
-stopDownload pt = putStrLn $ "Stopping peer-thread " ++ show (pt^.peer)
+stopDownload pt = putStrLn $ "Stopping peer-thread " ++ show (peer pt)
 
 -- This will do the actual data communication with peer
 downloadData :: PeerThread -> IO ()
@@ -84,7 +82,6 @@ downloadData _ = undefined
 
 doHandShake :: PeerThread -> IO Bool
 doHandShake pt = do
-  putStrLn $ "HandShake with " ++ show (pt^.peer)
+  putStrLn $ "HandShake with " ++ show (peer pt)
   return True
     -- timeout (10*1000*1000) handShake
-
