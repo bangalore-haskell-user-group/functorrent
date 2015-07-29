@@ -12,6 +12,7 @@ module FuncTorrent.Bencode
 
 import Prelude hiding (length, concat)
 
+import Control.Applicative ((<*)) -- This will cause a warning in 7.10.
 import Data.ByteString (ByteString, length, concat)
 import Data.ByteString.Char8 (unpack, pack)
 import Data.Functor ((<$>)) -- This will cause a warning in 7.10.
