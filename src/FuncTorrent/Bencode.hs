@@ -14,6 +14,7 @@ import Prelude hiding (length, concat)
 
 import Data.ByteString (ByteString, length, concat)
 import Data.ByteString.Char8 (unpack, pack)
+import Data.Functor ((<$>)) -- This will cause a warning in 7.10.
 import Data.Map.Strict (Map, fromList, toList)
 
 import Test.QuickCheck
