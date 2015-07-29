@@ -8,16 +8,17 @@ module FuncTorrent.Peer
 
 import Prelude hiding (lookup, concat, replicate, splitAt)
 
-import System.IO
+import Control.Applicative (liftA3)
+import Control.Monad (replicateM, liftM, forever)
+import Data.Binary (Binary(..), decode)
+import Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
+import Data.Binary.Put (putWord32be, putWord16be, putWord8)
 import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import Data.ByteString.Lazy (fromStrict, fromChunks)
-import qualified Data.ByteString.Char8 as BC (replicate, pack)
+import Data.Functor ((<$>)) -- This will cause a warning in 7.10.
 import Network (connectTo, PortID(..))
-import Data.Binary (Binary(..), decode)
-import Data.Binary.Put (putWord32be, putWord16be, putWord8)
-import Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
-import Control.Monad (replicateM, liftM, forever)
-import Control.Applicative (liftA3)
+import System.IO
+import qualified Data.ByteString.Char8 as BC (replicate, pack)
 
 type ID = String
 type IP = String
