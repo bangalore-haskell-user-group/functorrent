@@ -145,7 +145,7 @@ bencVal = Bstr <$> bencStr <|>
           Bdict <$> bencDict
 
 decode :: ByteString -> Either String BVal
-decode bs = case (parse bencVal "BVal" bs) of
+decode bs = case parse bencVal "BVal" bs of
            Left _ -> Left "Unable to parse torrent file"
            Right torrent -> Right torrent
 

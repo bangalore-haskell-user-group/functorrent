@@ -29,9 +29,7 @@ peerThreadMain pt = do
   case toDoAction of
     InitPeerConnection -> do
       response <- doHandShake pt
-      if not response
-        then setStatus PeerCommError
-        else setStatus InitDone
+      setStatus (if not response then PeerCommError else InitDone)
 
     GetPeerStatus ->
       setStatus PeerReady

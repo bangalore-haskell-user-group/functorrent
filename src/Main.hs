@@ -9,6 +9,7 @@ module Main where
 import Prelude hiding (log, length, readFile, writeFile)
 
 import Control.Concurrent
+import Control.Monad (liftM)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (readFile)
 import Data.IORef
@@ -51,7 +52,7 @@ parseTorrentFile :: Log -> String -> IO (Either String Metainfo)
 parseTorrentFile _ file = do
   fileExist <- doesFileExist file
   if fileExist
-    then readFile file >>= return . getMetaInfo
+    then liftM getMetaInfo (readFile file)
     else return $ Left "File does not exist"
 
  where

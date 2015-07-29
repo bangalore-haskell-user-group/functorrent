@@ -90,7 +90,7 @@ doExit ct = do
   putStrLn "Doing control-thread exit"
   let peerTs = peerThreads ct
   -- let the peer threads stop themselves
-  mapM_ ((setPeerThreadAction FuncTorrent.PeerThreadData.Stop).fst) peerTs
+  mapM_ (setPeerThreadAction FuncTorrent.PeerThreadData.Stop . fst) peerTs
 
   -- Let the threads run for a while
   -- We may add delay also if required

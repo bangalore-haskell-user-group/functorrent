@@ -23,11 +23,13 @@ type ID = String
 type IP = String
 type Port = Integer
 
-data PeerState = PeerState { handle :: Handle
-                           , am_choking :: Bool
-                           , am_interested :: Bool
-                           , peer_choking :: Bool
-                           , peer_interested :: Bool}
+data PeerState = PeerState {
+      handle :: Handle
+    , amChoking :: Bool
+    , amInterested :: Bool
+    , peerChoking :: Bool
+    , peerInterested :: Bool
+    }
 
 data PieceState = Pending
                 | InProgress

@@ -64,7 +64,7 @@ stopPeerThread _ = undefined
 -- Control thread will get status from this API
 -- It should not block due to Peer-Thread
 getPeerThreadStatus :: PeerThread -> IO (Maybe PeerThreadStatus)
-getPeerThreadStatus pt = tryReadMVar $ (peerTStatus pt)
+getPeerThreadStatus pt = tryReadMVar $ peerTStatus pt
 
 
 -- Peer Thread may block, if no action is recieved from Control-thread
