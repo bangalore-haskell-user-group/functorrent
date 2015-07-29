@@ -48,7 +48,6 @@ library
                        QuickCheck,
                        tasty,
                        tasty-hunit,
-                       lens,
                        transformers,
                        unix
 
@@ -70,7 +69,6 @@ executable functorrent
                        network,
                        network-uri,
                        parsec,
-                       lens,
                        transformers,
                        unix
 
@@ -118,5 +116,4 @@ test-suite control-thread-tests
                      QuickCheck,
                      tasty,
                      tasty-hunit,
-                     functorrent,
-                     lens
+                     functorrent

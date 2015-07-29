@@ -8,43 +8,38 @@ module FuncTorrent.Peer
 
 import Prelude hiding (lookup, concat, replicate, splitAt)
 
-import System.IO
+import Control.Applicative (liftA3)
+import Control.Monad (replicateM, liftM, forever)
+import Data.Binary (Binary(..), decode)
+import Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
+import Data.Binary.Put (putWord32be, putWord16be, putWord8)
 import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import Data.ByteString.Lazy (fromStrict, fromChunks)
-import qualified Data.ByteString.Char8 as BC (replicate, pack)
+import Data.Functor ((<$>)) -- This will cause a warning in 7.10.
 import Network (connectTo, PortID(..))
-import Data.Binary (Binary(..), decode)
-import Data.Binary.Put (putWord32be, putWord16be, putWord8)
-import Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
-import Control.Monad (replicateM, liftM, forever)
-import Control.Applicative ((<$>), liftA3)
+import System.IO
+import qualified Data.ByteString.Char8 as BC (replicate, pack)
 
 type ID = String
 type IP = String
 type Port = Integer
 
-data PeerState = PeerState { handle :: Handle
-                           , am_choking :: Bool
-                           , am_interested :: Bool
-                           , peer_choking :: Bool
-                           , peer_interested :: Bool}
-
--- Maintain info on every piece and the current state of it.
--- should probably be a TVar.
-type Pieces = [PieceData]
+data PeerState = PeerState {
+      handle :: Handle
+    , amChoking :: Bool
+    , amInterested :: Bool
+    , peerChoking :: Bool
+    , peerInterested :: Bool
+    }
 
 data PieceState = Pending
                 | InProgress
                 | Have
                 deriving (Show)
 
-data PieceData = PieceData { index :: Int           -- ^ Piece number
-                           , peers :: [Peer]        -- ^ list of peers who have this piece
-                           , state :: PieceState }  -- ^ state of the piece from download perspective.
-
 -- | Peer is a PeerID, IP address, port tuple
 data Peer = Peer ID IP Port
-          deriving (Show, Eq)
+            deriving (Show, Eq)
 
 data PeerMsg = KeepAliveMsg
              | ChokeMsg

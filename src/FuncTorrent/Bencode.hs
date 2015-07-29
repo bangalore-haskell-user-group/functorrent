@@ -12,14 +12,15 @@ module FuncTorrent.Bencode
 
 import Prelude hiding (length, concat)
 
-import Control.Applicative ((<*))
+import Control.Applicative ((<*)) -- This will cause a warning in 7.10.
 import Data.ByteString (ByteString, length, concat)
 import Data.ByteString.Char8 (unpack, pack)
-import Data.Functor ((<$>))
+import Data.Functor ((<$>)) -- This will cause a warning in 7.10.
 import Data.Map.Strict (Map, fromList, toList)
+
+import Test.QuickCheck
 import Text.ParserCombinators.Parsec
 import qualified Text.Parsec.ByteString as ParsecBS
-import Test.QuickCheck
 
 data BVal = Bint Integer
           | Bstr ByteString
@@ -146,8 +147,8 @@ bencVal = Bstr <$> bencStr <|>
           Bdict <$> bencDict
 
 decode :: ByteString -> Either String BVal
-decode bs = case (parse bencVal "BVal" bs) of
-           Left e -> Left "Unable to parse torrent file"
+decode bs = case parse bencVal "BVal" bs of
+           Left _ -> Left "Unable to parse torrent file"
            Right torrent -> Right torrent
 
 -- Encode BVal into a bencoded ByteString. Inverse of decode
