@@ -7,7 +7,8 @@ module FuncTorrent.PeerThreadMain
 import Prelude hiding (readFile)
 
 import Control.Concurrent
-import Control.Monad hiding (forM, forM_, mapM, mapM_, msum, sequence, sequence_)
+import Control.Exception.Base (bracket)
+import Control.Monad (void)
 import Data.IORef
 
 import FuncTorrent.PeerThreadData
@@ -23,50 +24,46 @@ import FuncTorrent.PeerThreadData
 -- 7. Report the peer status to the main thread.
 -- 8. If needed initiate request or seed.
 
-peerThreadMain :: PeerThread -> IO ()
-peerThreadMain pt = do
-  toDoAction <- getAction
+initialize :: PeerThread -> IO PeerThread
+initialize pt = do
+    putStrLn "Initialize peer thread"
+    return pt
+
+-- Peer thread loop. This is where all the action happens
+loop :: PeerThread -> IO ()
+loop pt = do
+  putStrLn $ "Wait for thread action " ++ show (peer pt)
+  toDoAction <- takeMVar (peerTAction pt)
+
   case toDoAction of
     InitPeerConnection -> do
       response <- doHandShake pt
       setStatus (if not response then PeerCommError else InitDone)
 
-    GetPeerStatus ->
-      setStatus PeerReady
+    GetPeerStatus -> setStatus PeerReady
 
     GetPieces _ -> do
       startDownload pt
       setStatus Downloading
 
-    Seed ->
-      setStatus Seeding
+    Seed -> setStatus Seeding
+    StayIdle -> setStatus PeerReady
 
-    StayIdle ->
-      setStatus PeerReady
-
-    Stop -> stopDownload pt
-
-  unless (toDoAction == Stop) $ peerThreadMain pt
+  loop pt
 
  where setStatus = putMVar (peerTStatus pt)
-       getAction = takeMVar (peerTAction pt)
 
--- Fork a thread to get pieces from the peer.
--- The incoming requests from this peer will be handled
--- By IncomingConnThread.
---
+-- | Fork a thread to get pieces from the peer.
+-- The incoming requests from this peer will be handled by IncomingConnThread.
 startDownload :: PeerThread -> IO ()
 startDownload pt = do
   tid <- forkIO $ downloadData pt
+  -- [review] - Replace with MVar ?
   writeIORef (downloadThread pt) (Just tid)
-
-stopDownload :: PeerThread -> IO ()
-stopDownload pt = putStrLn $ "Stopping peer-thread " ++ show (peer pt)
 
 -- This will do the actual data communication with peer
 downloadData :: PeerThread -> IO ()
 downloadData _ = undefined
-
 
 -- Hand-Shake details
 -- 1. Verify the Info Hash recieved from the peer.
@@ -78,8 +75,18 @@ downloadData _ = undefined
 --     peer_interested = 0
 -- 3. Send bit-field message
 
+-- [review] - PeerThread -> IO PeerThread might be better
 doHandShake :: PeerThread -> IO Bool
 doHandShake pt = do
-  putStrLn $ "HandShake with " ++ show (peer pt)
+  putStrLn $ "Handshake with " ++ show (peer pt)
   return True
-    -- timeout (10*1000*1000) handShake
+
+cleanup :: PeerThread -> IO ()
+cleanup pt = putStrLn $ "Stop and cleanup " ++ show (peer pt)
+
+peerThreadMain :: PeerThread -> IO ()
+peerThreadMain pt = bracket (initialize pt) cleanup action
+  where
+    -- forkIO needs an action which returns nothing
+    action :: PeerThread -> IO ()
+    action pt' = return $ void loop pt'

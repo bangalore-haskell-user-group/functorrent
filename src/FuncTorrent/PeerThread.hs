@@ -45,6 +45,8 @@ import FuncTorrent.PeerThreadMain (peerThreadMain)
 
 initPeerThread :: Peer -> IO (PeerThread, ThreadId)
 initPeerThread p = do
+  putStrLn $ "Fork new peer thread for " ++ show p
+
   s <- newEmptyMVar
   a <- newEmptyMVar
   --i <- newIORef defaultPeerState
@@ -56,18 +58,14 @@ initPeerThread p = do
   _ <- setPeerThreadAction InitPeerConnection pt
   return (pt, tid)
 
-
--- Gracefully exit a thread
-stopPeerThread :: PeerThread -> IO ()
-stopPeerThread _ = undefined
-
--- Control thread will get status from this API
--- It should not block due to Peer-Thread
+-- Control thread will get status from this API. It should not block due to
+-- Peer-Thread
+-- [todo] - Make it clear, why would it block ?
 getPeerThreadStatus :: PeerThread -> IO (Maybe PeerThreadStatus)
 getPeerThreadStatus pt = tryReadMVar $ peerTStatus pt
 
-
--- Peer Thread may block, if no action is recieved from Control-thread
--- It may also kill itself if no communication from Control-thread for some time.
+-- Peer Thread may block, if no action is recieved from Control-thread It may
+-- also kill itself if no communication from Control-thread for some time.
+-- [todo] - Make it clear, why would it block ?
 setPeerThreadAction :: PeerThreadAction -> PeerThread -> IO Bool
 setPeerThreadAction a pt = tryPutMVar (peerTAction pt) a
