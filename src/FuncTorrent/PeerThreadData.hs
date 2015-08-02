@@ -28,7 +28,6 @@ data PeerThreadAction
     | GetPieces [Piece]
     | Seed
     | StayIdle
-    | Stop
     deriving (Eq,Show)
 
 data PeerThread = PeerThread
