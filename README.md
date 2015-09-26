@@ -17,6 +17,7 @@ virtualenv.
 
     $ git clone https://github.com/vu3rdd/functorrent && cd functorrent
     $ cabal sandbox init
+    $ cabal update
     $ cabal install --only-dependencies --enable-tests
     $ cabal build # binaries in ./dist/built/functorrent/*
 
