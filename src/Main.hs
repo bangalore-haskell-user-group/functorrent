@@ -12,7 +12,6 @@ import Control.Concurrent
 import Control.Monad (liftM)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (readFile)
-import Data.IORef
 import System.Directory (doesFileExist)
 import System.Environment (getArgs)
 import System.Posix.Signals (installHandler, Handler(Catch), sigINT, sigTERM)
@@ -67,16 +66,20 @@ startTorrentConc _ m = do
   _ <- installHandler sigTERM (Catch $ putMVar interrupt sigTERM) Nothing
 
   -- Fork Control-Thread(s)
-  (ct,_) <- initControlThread m
+  (ct, ctid) <- initControlThread m
 
   -- Fork Server-Thread
-  (st,_) <- initServerThread [(m,ct)]
+  (_, stid) <- initServerThread [(m, ct)]
 
   -- Wait For user-interrupt
   _ <- takeMVar interrupt
 
   -- Exit gracefully
-  putMVar (serverTAction st) FuncTorrent.ServerThread.Stop
-  writeIORef (controlTAction ct) FuncTorrent.ControlThread.Stop
+  killThread stid
+  killThread ctid
+
+  -- [review] - Why do we need a yield here?
   yield
+
+  -- [review] - Why do we need a sleep here?
   threadDelay $ 4*1000*1000
