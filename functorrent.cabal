@@ -18,16 +18,17 @@ cabal-version:       >=1.18
 library
   exposed-modules:     FuncTorrent
                        FuncTorrent.Bencode,
+                       FuncTorrent.ControlThread
                        FuncTorrent.Logger,
                        FuncTorrent.Metainfo,
                        FuncTorrent.Network
                        FuncTorrent.Peer,
-                       FuncTorrent.Tracker
-                       FuncTorrent.ControlThread
                        FuncTorrent.PeerThread
-                       FuncTorrent.PeerThreadMain
                        FuncTorrent.PeerThreadData
+                       FuncTorrent.PeerThreadMain
                        FuncTorrent.ServerThread
+                       FuncTorrent.Tracker
+                       FuncTorrent.Writer
 
   other-modules:       FuncTorrent.Utils
   other-extensions:    OverloadedStrings, CPP
