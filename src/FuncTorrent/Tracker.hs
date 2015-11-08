@@ -1,38 +1,64 @@
 {-# LANGUAGE OverloadedStrings #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : FuncTorrent.Tracker
+--
+-- Tracker module, which can be cleaned up a lot.
+--
+-- Module exposes only one single type `Tracker` representing a tracker response
+-- and one function `tracker` to talk to tracker.
+-----------------------------------------------------------------------------
+
 module FuncTorrent.Tracker
-    (TrackerResponse(..),
+    (Tracker(..),
      tracker,
-     mkArgs,
+
+     -- Exposed for testing
      mkTrackerResponse,
-     urlEncodeHash
     ) where
 
 import Prelude hiding (lookup, splitAt)
 
-import Data.ByteString (ByteString)
-import Data.ByteString.Char8 as BC (pack, unpack, splitAt)
-import Data.Char (chr)
-import Data.List (intercalate)
-import Data.Map as M (lookup)
-import Network.HTTP.Base (urlEncode)
+import           Data.ByteString (ByteString)
+import           Data.ByteString.Char8 as BC (pack, unpack, splitAt)
+import           Data.Char (chr)
+import           Data.List (intercalate)
+import           Data.Map as M (lookup)
+import           Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
+import           Network.HTTP.Base (urlEncode)
+import           Network.URI (parseURI)
 import qualified Data.ByteString.Base16 as B16 (encode)
+import qualified Data.ByteString.Char8 as BC (concat, intercalate)
 
-import FuncTorrent.Bencode (BVal(..))
+import FuncTorrent.Bencode (BVal(..), decode)
 import FuncTorrent.Metainfo (Info(..), Metainfo(..))
-import FuncTorrent.Network (get)
 import FuncTorrent.Peer (Peer(..))
 import FuncTorrent.Utils (splitN)
 
--- | Tracker response
-data TrackerResponse = TrackerResponse {
-      interval :: Maybe Integer
-    , peers :: [Peer]
-    , complete :: Maybe Integer
-    , incomplete :: Maybe Integer
-    } deriving (Show, Eq)
+-- | Tracker response.
+data Tracker = Tracker
+     { interval   :: Maybe Integer
+     , peers      :: [Peer]
+     , complete   :: Maybe Integer
+     , incomplete :: Maybe Integer
+     } deriving (Show)
+
+-- | Connect to a tracker and get peer info
+--
+-- Primary interface to the module.
+tracker :: Metainfo -> String -> IO (Either ByteString Tracker)
+tracker mInfo url = do
+  response <- get url $ mkParams mInfo "-HS0001-*-*-20150215"
+
+  -- TODO: Write to ~/.functorrent/caches
+  -- writeFile (name (info m) ++ ".cache") response
+
+  return $ case decode response of
+    Right trackerInfo -> mkTrackerResponse trackerInfo
+    Left err -> Left $ BC.pack err
 
 -- | Deserialize tracker response
-mkTrackerResponse :: BVal -> Either ByteString TrackerResponse
+mkTrackerResponse :: BVal -> Either ByteString Tracker
 mkTrackerResponse resp =
     case lookup "failure reason" body of
       Just (Bstr err) -> Left err
@@ -41,12 +67,11 @@ mkTrackerResponse resp =
           let (Just (Bint i)) = lookup "interval" body
               (Just (Bstr peersBS)) = lookup "peers" body
               pl = map makePeer (splitN 6 peersBS)
-          in Right TrackerResponse {
-                   interval = Just i
-                 , peers = pl
-                 , complete = Nothing
-                 , incomplete = Nothing
-                 }
+          in Right Tracker {
+                interval = Just i
+              , peers = pl
+              , complete = Nothing
+              , incomplete = Nothing}
     where
       (Bdict body) = resp
 
@@ -65,10 +90,6 @@ mkTrackerResponse resp =
       makePeer peer = Peer "" (toIP ip') (toPort port')
           where (ip', port') = splitAt 4 peer
 
--- | Connect to a tracker and get peer info
-tracker :: Metainfo -> String -> IO ByteString
-tracker m peer_id = get (head . announceList $ m) $ mkArgs m peer_id
-
 --- | URL encode hash as per RFC1738
 --- TODO: Add tests
 --- REVIEW: Why is this not written in terms of `Network.HTTP.Base.urlEncode` or
@@ -83,9 +104,15 @@ urlEncodeHash bs = concatMap (encode' . unpack) (splitN 2 bs)
 
         nonSpecialChars = ['A'..'Z'] ++ ['a'..'z'] ++ ['0'..'9'] ++ "-_.~"
 
--- | Make arguments that should be posted to tracker.
--- This is a separate pure function for testability.
-mkArgs :: Metainfo -> String -> [(String, ByteString)]
+-- | Make a query string out of the arguments
+mkParams :: Metainfo -> String -> ByteString
+mkParams m peer_id =
+    BC.intercalate "&" [BC.concat [f, "=", s] | (f,s) <- params]
+  where
+    params = mkArgs m peer_id
+
+--- | Prepare arguments that should be posted to tracker
+mkArgs :: Metainfo -> String -> [(ByteString, ByteString)]
 mkArgs m peer_id = [("info_hash", pack . urlEncodeHash . B16.encode . infoHash $ m),
                     ("peer_id", pack . urlEncode $ peer_id),
                     ("port", "6881"),
@@ -94,3 +121,9 @@ mkArgs m peer_id = [("info_hash", pack . urlEncodeHash . B16.encode . infoHash $
                     ("left", pack . show . lengthInBytes $ info m),
                     ("compact", "1"),
                     ("event", "started")]
+
+get :: String -> ByteString -> IO ByteString
+get url args = simpleHTTP (defaultGETRequest_ url') >>= getResponseBody
+    where url' = case parseURI $ BC.unpack $ BC.concat [BC.pack url, "?", args] of
+                   Just x -> x
+                   _ -> error "Bad tracker URL"

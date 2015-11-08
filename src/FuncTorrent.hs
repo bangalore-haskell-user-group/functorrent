@@ -3,7 +3,7 @@ module FuncTorrent
      Info(..),
      Metainfo(..),
      Peer,
-     TrackerResponse(..),
+     Tracker(..),
      tracker,
      decode,
      encode,

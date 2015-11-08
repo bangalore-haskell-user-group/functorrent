@@ -21,7 +21,6 @@ library
                        FuncTorrent.ControlThread
                        FuncTorrent.Logger,
                        FuncTorrent.Metainfo,
-                       FuncTorrent.Network
                        FuncTorrent.Peer,
                        FuncTorrent.PeerThread
                        FuncTorrent.PeerThreadData
