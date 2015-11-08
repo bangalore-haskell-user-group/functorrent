@@ -19,8 +19,7 @@ import System.Posix.Signals (installHandler, Handler(Catch), sigINT, sigTERM)
 import FuncTorrent.Bencode (decode)
 import FuncTorrent.Logger (Log, initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (Metainfo(..), mkMetaInfo)
-import FuncTorrent.ControlThread
-import FuncTorrent.ServerThread
+import FuncTorrent.ControlThread (initControlThread)
 
 peerId :: String
 peerId = "-HS0001-*-*-20150215"
@@ -66,20 +65,10 @@ startTorrentConc _ m = do
   _ <- installHandler sigTERM (Catch $ putMVar interrupt sigTERM) Nothing
 
   -- Fork Control-Thread(s)
-  (ct, ctid) <- initControlThread m
-
-  -- Fork Server-Thread
-  (_, stid) <- initServerThread [(m, ct)]
+  (ctid, _ct) <- initControlThread m
 
   -- Wait For user-interrupt
   _ <- takeMVar interrupt
 
   -- Exit gracefully
-  killThread stid
   killThread ctid
-
-  -- [review] - Why do we need a yield here?
-  yield
-
-  -- [review] - Why do we need a sleep here?
-  threadDelay $ 4*1000*1000
