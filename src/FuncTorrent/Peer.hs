@@ -39,7 +39,7 @@ import           Network (connectTo, PortID(..))
 import           System.IO
 import qualified Data.ByteString.Char8 as BC (replicate, pack)
 
-import           FuncTorrent.Writer (Piece(..))
+import           FuncTorrent.Writer (Piece(..), write)
 
 type ID = String
 type IP = String
@@ -79,13 +79,13 @@ data PeerThread = PeerThread {
     peer       :: Peer
 
     -- | Block request channel
-    , reader  :: Chan Int
+    , reader  :: Chan Integer
 
     -- | Block writer channel
     , writer  :: Chan Piece
 
     -- | Available blocks, indexed by ID
-    , avaialble :: [Int]}
+    , avaialble :: [Integer]}
 
 
 -- Peer thread implementation
@@ -97,27 +97,30 @@ data PeerThread = PeerThread {
 initPeerThread :: Peer -> Chan Piece -> IO (ThreadId, PeerThread)
 initPeerThread p writerChan = do
     putStrLn $ "Spawning peer thread for " ++ show p
-    blocks <- newChan :: IO (Chan Int)
+    blocks <- newChan :: IO (Chan Integer)
     let pt = PeerThread p blocks writerChan []
     -- bracket :: IO a -> (a -> IO b) -> (a -> IO c) -> IO c
-    tid <- forkIO $ bracket (initialize pt) cleanup loop
+    tid <- forkIO $ bracket (initialize pt) cleanup downloader
     return (tid, pt)
-
 
 -- |Initialize module. Resources allocated here must be cleaned up in cleanup
 initialize :: PeerThread -> IO PeerThread
 initialize pt = putStrLn "Initializing peer" >> return pt
 
--- | [todo] - Implements peer protocol
--- Also drains the block request channel and writes contents to writer channel.
-loop :: PeerThread -> IO ()
-loop pt = do
+-- Drains the block request channel and writes contents to writer channel.
+downloader :: PeerThread -> IO ()
+downloader pt = do
     putStrLn "Draining reader"
     requests <- getChanContents $ reader pt
     mapM_ download requests
   where
-    download :: Int -> IO ()
-    download x = putStrLn $ "Request for block " ++ show x
+    download :: Integer -> IO ()
+    download x = do
+        -- [todo] - Replace with real download implementation
+        -- | Download a piece and write to writer channel
+        putStrLn $ "Request for block " ++ show x
+        threadDelay 1000000
+        write (writer pt) $ Piece x "hello world"
 
 -- [todo] - Close the channel on shutdown.
 --
