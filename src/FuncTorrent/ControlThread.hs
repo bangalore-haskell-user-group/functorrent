@@ -66,13 +66,37 @@ initialize ct = do
   where
     mInfo = metaInfo ct
 
--- | Control thread loop. This is where all the action happens
+-- | Control thread loop. This is where all the action happens.
+--
+-- CT starts with 4 random peers. CT listens for new blocks from `blockChan` and
+-- schedules it to be downloaded. This logic should get a lot smarter to speed
+-- up things.
+
 loop :: ControlThread -> IO ()
 loop ct = do
     putStrLn "Do control thread work"
+
+    -- Spawn block scheduler
+    _ <- forkIO $ listener ct
+
+    -- Spawn a bunch of peer threads
     let fewPeers = take 4 (concatMap peers $ trackers ct)
-    let _peerThreads = mapM (forkPeerThread ct) fewPeers
-    return ()
+    --  [FIX] - Add this list to state so they can be cleaned up on shutdown
+    mapM_ (forkPeerThread ct) fewPeers
+
+-- Drains the availability request channel and schedules them to be downloaded
+-- immediately with the same peer. This could get a lot smarter.
+listener :: ControlThread -> IO ()
+listener ct = do
+    putStrLn "Draining block availability channel"
+    blocks' <- getChanContents $ blockChan ct
+    mapM_ schedule blocks'
+  where
+    -- | Schedule a block to be downloaded on an available peer
+    schedule :: (PeerThread, Integer) -> IO ()
+    schedule (pt, index) = do
+        putStrLn $ concat ["Found block ", show index, "with ", show $ peer pt]
+        writeChan (reader pt) index
 
 -- | Called by bracket before the control thread is shutdown
 cleanup :: ControlThread -> IO ()

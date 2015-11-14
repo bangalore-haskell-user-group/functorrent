@@ -102,7 +102,6 @@ data PeerThread = PeerThread {
 --
 -- Requests for fetching new blocks can be sent to the channel and those blocks
 -- will be eventually written to the writer channel.
-
 initPeerThread :: Peer -> Chan (PeerThread, Integer) -> Chan Piece -> IO (ThreadId, PeerThread)
 initPeerThread p blockChan writerChan = do
     putStrLn $ "Spawning peer thread for " ++ show p
