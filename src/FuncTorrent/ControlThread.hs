@@ -95,7 +95,7 @@ listener ct = do
     -- | Schedule a block to be downloaded on an available peer
     schedule :: (PeerThread, Integer) -> IO ()
     schedule (pt, index) = do
-        putStrLn $ concat ["Found block ", show index, "with ", show $ peer pt]
+        putStrLn $ concat ["Found block ", show index, " with ", show $ peer pt]
         writeChan (reader pt) index
 
 -- | Called by bracket before the control thread is shutdown

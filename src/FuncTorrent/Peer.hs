@@ -54,7 +54,9 @@ type Port = Integer
 
 -- | A single Peer, denoted by a ID, IP address and port
 data Peer = Peer ID IP Port
-          deriving (Show, Eq)
+
+instance Show Peer where
+    show (Peer id' ip p) = concatMap id ["Peer <", id', " ", ip, " ",show p, ">"]
 
 data PeerState = PeerState {
       handle :: Handle
@@ -133,8 +135,7 @@ loop pt = do
     -- Assume a torrent with 32 pieces and the remote peer has a few of them.
     -- Report those to the control thread.
     g <- newStdGen
-    let count = head $ randomRs (1, 32) g :: Int
-    let available = rmduplicates $ take count (randomRs (0, 31) g) :: [Integer]
+    let available = rmduplicates $ take 4 (randomRs (0, 31) g) :: [Integer]
 
     mapM_ report available
 
@@ -156,7 +157,7 @@ downloader pt = do
     download x = do
         -- [todo] - Replace with real download implementation
         -- | Download a piece and write to writer channel
-        putStrLn $ "Request for block " ++ show x
+        putStrLn $ "Download block " ++ show x
         threadDelay 1000000
         write (writer pt) $ Piece x "hello world"
 
@@ -167,7 +168,7 @@ downloader pt = do
 --
 -- | Called by bracket before the writer is shutdown
 cleanup :: PeerThread -> IO ()
-cleanup _pt = putStrLn "Clean up writer"
+cleanup pt = putStrLn $ "Clean up peer thread for " ++ show (peer pt)
 
 -- Protocol implementation
 

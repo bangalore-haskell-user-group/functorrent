@@ -72,10 +72,11 @@ loop (Writer handle chan) = do
   where
     write' :: Piece -> IO ()
     -- [TODO] - Flushing after every write might lead to terrible performance
-    write' (Piece offset contents) =
+    write' (Piece offset contents) = do
+        putStrLn $ "Writing block " ++ show offset ++ " to disk"
         hSeek handle AbsoluteSeek offset
-        >> BL.hPut handle contents
-        >> hFlush handle
+        BL.hPut handle contents
+        hFlush handle
 
 -- [todo] - Close the channel on shutdown.
 --
