@@ -41,7 +41,7 @@ data Tracker = Tracker
      , peers      :: [Peer]
      , complete   :: Maybe Integer
      , incomplete :: Maybe Integer
-     } deriving (Show)
+     } deriving (Eq, Show)
 
 -- | Connect to a tracker and get peer info
 --

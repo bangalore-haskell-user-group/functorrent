@@ -50,6 +50,7 @@ import           FuncTorrent.Writer (Piece(..), write)
 
 -- | A single Peer, denoted by a IP address and port
 data Peer = Peer String Integer
+          deriving (Eq)
 
 instance Show Peer where
     show (Peer ip p) = concatMap id ["Peer < ", ip, " ", show p, " >"]
