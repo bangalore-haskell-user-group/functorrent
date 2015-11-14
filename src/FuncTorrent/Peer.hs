@@ -48,15 +48,11 @@ import qualified Data.ByteString.Char8 as BC (replicate, pack)
 
 import           FuncTorrent.Writer (Piece(..), write)
 
-type ID = String
-type IP = String
-type Port = Integer
-
--- | A single Peer, denoted by a ID, IP address and port
-data Peer = Peer ID IP Port
+-- | A single Peer, denoted by a IP address and port
+data Peer = Peer String Integer
 
 instance Show Peer where
-    show (Peer id' ip p) = concatMap id ["Peer <", id', " ", ip, " ",show p, ">"]
+    show (Peer ip p) = concatMap id ["Peer < ", ip, " ", show p, " >"]
 
 data PeerState = PeerState {
       handle :: Handle
@@ -80,7 +76,7 @@ data PeerMsg = KeepAliveMsg
              | RequestMsg Integer Integer Integer
              | PieceMsg Integer Integer ByteString
              | CancelMsg Integer Integer Integer
-             | PortMsg Port
+             | PortMsg Integer
              deriving (Show)
 
 data PeerThread = PeerThread {
@@ -180,7 +176,7 @@ genHandShakeMsg infoHash peer_id = concat [pstrlen, pstr, reserved, infoHash, pe
         peerID = BC.pack peer_id
 
 handShake :: Peer -> ByteString -> String -> IO Handle
-handShake (Peer _ ip port) infoHash peerid = do
+handShake (Peer ip port) infoHash peerid = do
   let hs = genHandShakeMsg infoHash peerid
   h <- connectTo ip (PortNumber (fromIntegral port))
   hSetBuffering h LineBuffering

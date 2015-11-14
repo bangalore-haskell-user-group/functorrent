@@ -87,7 +87,7 @@ mkTrackerResponse resp =
                  splitN 2 . B16.encode
 
       makePeer :: ByteString -> Peer
-      makePeer peer = Peer "" (toIP ip') (toPort port')
+      makePeer peer = Peer (toIP ip') (toPort port')
           where (ip', port') = splitAt 4 peer
 
 --- | URL encode hash as per RFC1738
