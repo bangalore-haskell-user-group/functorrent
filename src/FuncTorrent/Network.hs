@@ -13,7 +13,7 @@ import Network.HTTP (simpleHTTP, defaultGETRequest_, getResponseBody)
 import Network.URI (parseURI)
 
 -- | Make a query string from a alist of k, v
--- TODO: Url encode each argument
+-- [todo] - Url encode each argument
 mkParams :: [(String, ByteString)] -> ByteString
 mkParams params = BC.intercalate "&" [concat [pack f, "=", s] | (f,s) <- params]
 

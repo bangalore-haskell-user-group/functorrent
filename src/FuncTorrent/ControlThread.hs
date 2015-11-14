@@ -78,7 +78,7 @@ mainLoop ct =
    checkAction :: ControlThread -> IO ControlThread
    checkAction ct1 = do
      putStrLn "Check control thread action"
-     -- TODO: This will cause a 4s delay b/w a ^C and the app going down
+     -- [todo] - This will cause a 4s delay b/w a ^C and the app going down
      threadDelay $ 4*1000*1000
      action <- readIORef $ controlTAction ct1
      case action of
@@ -118,7 +118,7 @@ getTrackerResponse :: ControlThread -> IO ControlThread
 getTrackerResponse ct = do
   response <- tracker (metaInfo ct) "-HS0001-*-*-20150215"
 
-  -- TODO: Write to ~/.functorrent/caches
+  -- [todo] - Write to ~/.functorrent/caches
   -- writeFile (name (info m) ++ ".cache") response
 
   case decode response of

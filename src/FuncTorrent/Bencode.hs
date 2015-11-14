@@ -153,10 +153,10 @@ decode bs = case parse bencVal "BVal" bs of
 
 -- Encode BVal into a bencoded ByteString. Inverse of decode
 
--- TODO: Use builders and lazy byte string to get O(1) concatenation over O(n)
+-- [todo] - Use builders and lazy byte string to get O(1) concatenation over O(n)
 -- provided by lists.
 
--- TODO: encode . decode pair might be a good candidate for Quickcheck.
+-- [todo] - encode . decode pair might be a good candidate for Quickcheck.
 -- | encode bencoded-values
 --
 -- >>> encode (Bstr (pack ""))

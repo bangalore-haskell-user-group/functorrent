@@ -70,9 +70,8 @@ tracker :: Metainfo -> String -> IO ByteString
 tracker m peer_id = get (head . announceList $ m) $ mkArgs m peer_id
 
 --- | URL encode hash as per RFC1738
---- TODO: Add tests
---- REVIEW: Why is this not written in terms of `Network.HTTP.Base.urlEncode` or
---- equivalent library function?
+--- [todo] - Add tests for URL encode hash
+--- [review] - Write urlEncodeHash with Network.HTTP.Base.urlEncode or something
 urlEncodeHash :: ByteString -> String
 urlEncodeHash bs = concatMap (encode' . unpack) (splitN 2 bs)
   where encode' b@[c1, c2] = let c =  chr (read ("0x" ++ b))
