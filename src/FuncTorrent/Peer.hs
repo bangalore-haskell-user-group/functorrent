@@ -5,9 +5,14 @@
 --
 -- Module to handle operations with one peer.
 --
--- Requests to fetch blocks arrive via a channel, and retrieved blocks are
--- written to another channel. This module is stateless and is perfectly safe to
--- be killed anytime. The only requirement is to close inbound channels.
+-- Peer talks peer protocol with one remote peer and reports the availability of
+-- blocks to the control thread via `availability` channel. Control thread can
+-- schedule block downloads taking into consideration the state of all active
+-- peers. Requests to fetch blocks arrive via the `reader` channel, and
+-- retrieved blocks are written to `writer` channel. This module is stateless
+-- and is perfectly safe to be killed anytime. The only requirement is to close
+-- inbound channels, such that control threads cannot request for more downloads
+-- after its shutdown.
 --
 -----------------------------------------------------------------------------
 module FuncTorrent.Peer
@@ -35,8 +40,10 @@ import           Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
 import           Data.Binary.Put (putWord32be, putWord16be, putWord8)
 import           Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import           Data.ByteString.Lazy (fromStrict, fromChunks)
+import           Data.List (sort, group)
 import           Network (connectTo, PortID(..))
 import           System.IO
+import           System.Random (newStdGen, randomRs)
 import qualified Data.ByteString.Char8 as BC (replicate, pack)
 
 import           FuncTorrent.Writer (Piece(..), write)
@@ -76,16 +83,17 @@ data PeerMsg = KeepAliveMsg
 
 data PeerThread = PeerThread {
     -- | Peer tracked by the thread
-    peer       :: Peer
+    peer :: Peer
 
     -- | Block request channel
-    , reader  :: Chan Integer
+    , reader :: Chan Integer
 
     -- | Block writer channel
-    , writer  :: Chan Piece
+    , writer :: Chan Piece
 
-    -- | Available blocks, indexed by ID
-    , avaialble :: [Integer]}
+    -- | Report availability of blocks on this channel
+    , availibility :: Chan (PeerThread, Integer)
+    }
 
 
 -- Peer thread implementation
@@ -94,18 +102,49 @@ data PeerThread = PeerThread {
 --
 -- Requests for fetching new blocks can be sent to the channel and those blocks
 -- will be eventually written to the writer channel.
-initPeerThread :: Peer -> Chan Piece -> IO (ThreadId, PeerThread)
-initPeerThread p writerChan = do
+
+initPeerThread :: Peer -> Chan (PeerThread, Integer) -> Chan Piece -> IO (ThreadId, PeerThread)
+initPeerThread p blockChan writerChan = do
     putStrLn $ "Spawning peer thread for " ++ show p
     blocks <- newChan :: IO (Chan Integer)
-    let pt = PeerThread p blocks writerChan []
+    let pt = PeerThread p blocks writerChan blockChan
     -- bracket :: IO a -> (a -> IO b) -> (a -> IO c) -> IO c
-    tid <- forkIO $ bracket (initialize pt) cleanup downloader
+    tid <- forkIO $ bracket (initialize pt) cleanup action
     return (tid, pt)
+  where
+      -- | Spawns two threads to talk peer protocol and download requested blocks
+      action :: PeerThread -> IO ()
+      action pt = do
+          _ <- forkIO $ loop pt
+          _ <- forkIO $ downloader pt
+          return ()
 
 -- |Initialize module. Resources allocated here must be cleaned up in cleanup
 initialize :: PeerThread -> IO PeerThread
 initialize pt = putStrLn "Initializing peer" >> return pt
+
+-- [todo] - Implement the peer protocol here
+-- | Talks peer protocol to one peer
+--
+-- Reports the list of available pieces back to the control thread, which
+-- eventually schedules the pieces to be downloaded depending on various
+-- prioritization techniques.
+loop :: PeerThread -> IO ()
+loop pt = do
+    -- Assume a torrent with 32 pieces and the remote peer has a few of them.
+    -- Report those to the control thread.
+    g <- newStdGen
+    let count = head $ randomRs (1, 32) g :: Int
+    let available = rmduplicates $ take count (randomRs (0, 31) g) :: [Integer]
+
+    mapM_ report available
+
+  where
+    rmduplicates :: Ord a => [a] -> [a]
+    rmduplicates = map head . group . sort
+
+    report :: Integer -> IO ()
+    report block = writeChan (availibility pt) (pt, block)
 
 -- Drains the block request channel and writes contents to writer channel.
 downloader :: PeerThread -> IO ()

@@ -42,6 +42,7 @@ library
                        network-uri,
                        parsec,
                        QuickCheck,
+                       random,
                        tasty,
                        tasty-hunit,
                        transformers,
@@ -65,6 +66,7 @@ executable functorrent
                        network,
                        network-uri,
                        parsec,
+                       random,
                        transformers,
                        unix
 
@@ -81,6 +83,7 @@ test-suite functorrent-test
                      directory,
                      doctest,
                      QuickCheck,
+                     random,
                      tasty,
                      tasty-hunit,
                      QuickCheck,

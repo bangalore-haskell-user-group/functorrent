@@ -20,28 +20,41 @@ module FuncTorrent.ControlThread where
 import Control.Concurrent
 import Control.Exception.Base (bracket)
 import Data.Either (rights)
+import Data.Map.Lazy (Map, fromList)
 
 import FuncTorrent.Metainfo (Metainfo(..))
 import FuncTorrent.Peer (Peer(..), PeerThread(..), initPeerThread)
 import FuncTorrent.Tracker (Tracker(..), tracker)
 import FuncTorrent.Writer (Piece(..), initWriterThread)
 
-data ControlThread = ControlThread
-    { metaInfo    :: Metainfo
+data ControlThread = ControlThread {
+     -- | Static information about the torrent from the .torrent file
+     metaInfo    :: Metainfo
+
+     -- | List of tracker responses
     , trackers    :: [Tracker]
+
+     -- | Active peer threads managed by the control thread
     , peerThreads :: [(ThreadId, PeerThread)]
-    -- | [TODO] - This should be a `Map File Chan`
-    , writerChannel :: Chan Piece
-    }
+
+     -- | Keeps track of the list of peers having a block
+    , blocks :: Map Integer [PeerThread]
+
+     -- | Peers report availability of a block on this channel
+    , blockChan :: Chan (PeerThread, Integer)
+
+     -- [TODO] - A writer must be spawned per file, change to `Map File Chan`
+    , writerChan :: Chan Piece}
 
 initControlThread :: Metainfo -> IO (ThreadId, ControlThread)
 initControlThread m = do
     -- [todo] - This is not right. A control thread should spawn a writer thread
     -- per file and shut it down once done. Need a mechanism to map writers to
     -- files to peer thread workers.
-    (_threadID, chan) <- initWriterThread "/tmp/functorrent.txt" 2048
-
-    let ct = ControlThread m [] [] chan
+    (_threadID, writerChan') <- initWriterThread "/tmp/functorrent.txt" 2048
+    blockChan' <- newChan :: IO (Chan (PeerThread, Integer))
+    let blocks' = fromList [] :: Map Integer [PeerThread]
+    let ct = ControlThread m [] [] blocks' blockChan' writerChan'
     -- bracket :: IO a -> (a -> IO b) -> (a -> IO c) -> IO c
     tid <- forkIO $ bracket (initialize ct) cleanup loop
     return (tid, ct)
@@ -73,6 +86,6 @@ cleanup ct = do
 -- Forks a peer-thread and add it to the peerThreads list
 forkPeerThread :: ControlThread -> Peer -> IO ControlThread
 forkPeerThread ct p = do
-    pt <- initPeerThread p $ writerChannel ct
+    pt <- initPeerThread p (blockChan ct) (writerChan ct)
     let newPeerThreads = pt : peerThreads ct  -- Append pt to peerThreads
     return ct { peerThreads = newPeerThreads}
