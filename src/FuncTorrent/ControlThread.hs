@@ -19,7 +19,9 @@ module FuncTorrent.ControlThread where
 
 import Control.Concurrent
 import Control.Exception.Base (bracket)
+import Control.Monad (void, unless)
 import Data.Either (rights)
+import Data.Foldable (foldlM)
 import Data.Map.Lazy (Map, fromList)
 
 import FuncTorrent.Core (AvailabilityChannel, DataChannel)
@@ -91,13 +93,22 @@ listener :: ControlThread -> IO ()
 listener ct = do
     putStrLn "Draining block availability channel"
     blocks' <- getChanContents $ blockChan ct
-    mapM_ schedule blocks'
+    -- List of completed blocks, assume 32 pieces in the torrent
+    -- [FIX] - Replace with real number of pieces in the torrent
+    let done = map (const False) [0..31 :: Integer] :: [Bool]
+    void $ foldlM schedule done blocks'
   where
     -- | Schedule a block to be downloaded on an available peer
-    schedule :: (PeerThread, Integer) -> IO ()
-    schedule (PeerThread peer _ requestChan _, index) = do
+    schedule :: [Bool] -> (PeerThread, Integer) -> IO [Bool]
+    schedule done (PeerThread peer _ requestChan _, index) = do
         putStrLn $ concat ["Found block ", show index, " with ", show peer]
-        writeChan requestChan index
+        unless (done !! fromInteger index) $ writeChan requestChan index
+        return $ replaceAt done True index
+
+    -- | Replace the nth item with key
+    replaceAt :: [a] -> a -> Integer -> [a]
+    replaceAt xs key n = pick ++ [key] ++ rest
+      where (pick, _replace:rest) = splitAt (fromInteger n) xs
 
 -- | Called by bracket before the control thread is shutdown
 cleanup :: ControlThread -> IO ()
