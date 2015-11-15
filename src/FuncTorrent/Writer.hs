@@ -13,37 +13,33 @@
 -- Write to the file by sending data to channel. Could abstract away the low
 -- level details sometime later.
 --
--- > write writer (Piece 26 "hello world")
+-- > writeChan writer (Block 26 "hello world")
 --
 -- Stop the channel when done with it.
 --
--- > stop threadID
+-- > killThread threadID
 -----------------------------------------------------------------------------
 
 module FuncTorrent.Writer
        (
          initWriterThread
-       , stop
-       , write
-       , Piece(..)
-       , Writer(..)
-
        ) where
 
-import           Control.Concurrent
+import           Control.Concurrent (ThreadId, forkIO, getChanContents, newChan)
 import           Control.Exception.Base (bracket)
 import           Control.Monad (unless)
 import           System.Directory (doesFileExist)
-import           System.IO
+import           System.IO (Handle, IOMode(..), SeekMode(..), openFile, hSeek,
+                            hFlush, hClose)
 import qualified Data.ByteString.Lazy as BL
 
-data Piece = Piece Integer BL.ByteString -- Piece offset and Contents
-    deriving (Show)
+import           FuncTorrent.Core (Block(..), DataChannel)
 
-data Writer = Writer Handle (Chan Piece)
+
+data Writer = Writer Handle DataChannel
 
 -- |Initialize writer module
-initWriterThread :: FilePath -> Int -> IO (ThreadId, Chan Piece)
+initWriterThread :: FilePath -> Int -> IO (ThreadId, DataChannel)
 initWriterThread file size = do
     putStrLn "Spawning writer"
     chan <- newChan
@@ -52,7 +48,7 @@ initWriterThread file size = do
     return (tid, chan)
 
 -- |Initialize module. Resources allocated here must be cleaned up in cleanup
-initialize :: FilePath -> Int -> Chan Piece -> IO Writer
+initialize :: FilePath -> Int -> DataChannel -> IO Writer
 initialize file size chan = do
     putStrLn "Initializing writer"
 
@@ -70,9 +66,9 @@ loop (Writer handle chan) = do
     msgs <- getChanContents chan
     mapM_ write' msgs
   where
-    write' :: Piece -> IO ()
+    write' :: Block -> IO ()
     -- [TODO] - Flushing after every write might lead to terrible performance
-    write' (Piece offset contents) = do
+    write' (Block offset contents) = do
         putStrLn $ "Writing block " ++ show offset ++ " to disk"
         hSeek handle AbsoluteSeek offset
         BL.hPut handle contents
@@ -87,13 +83,3 @@ loop (Writer handle chan) = do
 cleanup :: Writer -> IO ()
 cleanup (Writer handle _) =
     putStrLn "Clean up writer" >> hClose handle
-
--- Abstracting away the internal API
-
--- | Write a piece to disk
-write :: Chan a -> a -> IO ()
-write = writeChan
-
--- | Stop writer thread with its 'ThreadId'
-stop :: ThreadId -> IO ()
-stop = killThread

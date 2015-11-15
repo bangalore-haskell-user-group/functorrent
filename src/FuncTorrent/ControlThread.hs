@@ -22,10 +22,11 @@ import Control.Exception.Base (bracket)
 import Data.Either (rights)
 import Data.Map.Lazy (Map, fromList)
 
+import FuncTorrent.Core (AvailabilityChannel, DataChannel)
 import FuncTorrent.Metainfo (Metainfo(..))
 import FuncTorrent.Peer (Peer(..), PeerThread(..), initPeerThread)
 import FuncTorrent.Tracker (Tracker(..), tracker)
-import FuncTorrent.Writer (Piece(..), initWriterThread)
+import FuncTorrent.Writer (initWriterThread)
 
 data ControlThread = ControlThread {
      -- | Static information about the torrent from the .torrent file
@@ -41,10 +42,10 @@ data ControlThread = ControlThread {
     , blocks :: Map Integer [PeerThread]
 
      -- | Peers report availability of a block on this channel
-    , blockChan :: Chan (PeerThread, Integer)
+    , blockChan :: AvailabilityChannel
 
      -- [TODO] - A writer must be spawned per file, change to `Map File Chan`
-    , writerChan :: Chan Piece}
+    , writerChan :: DataChannel}
 
 initControlThread :: Metainfo -> IO (ThreadId, ControlThread)
 initControlThread m = do
@@ -52,7 +53,7 @@ initControlThread m = do
     -- per file and shut it down once done. Need a mechanism to map writers to
     -- files to peer thread workers.
     (_threadID, writerChan') <- initWriterThread "/tmp/functorrent.txt" 2048
-    blockChan' <- newChan :: IO (Chan (PeerThread, Integer))
+    blockChan' <- newChan :: IO AvailabilityChannel
     let blocks' = fromList [] :: Map Integer [PeerThread]
     let ct = ControlThread m [] [] blocks' blockChan' writerChan'
     -- bracket :: IO a -> (a -> IO b) -> (a -> IO c) -> IO c
@@ -94,9 +95,9 @@ listener ct = do
   where
     -- | Schedule a block to be downloaded on an available peer
     schedule :: (PeerThread, Integer) -> IO ()
-    schedule (pt, index) = do
-        putStrLn $ concat ["Found block ", show index, " with ", show $ peer pt]
-        writeChan (reader pt) index
+    schedule (PeerThread peer _ requestChan _, index) = do
+        putStrLn $ concat ["Found block ", show index, " with ", show peer]
+        writeChan requestChan index
 
 -- | Called by bracket before the control thread is shutdown
 cleanup :: ControlThread -> IO ()

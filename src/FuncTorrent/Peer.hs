@@ -46,14 +46,8 @@ import           System.IO
 import           System.Random (newStdGen, randomRs)
 import qualified Data.ByteString.Char8 as BC (replicate, pack)
 
-import           FuncTorrent.Writer (Piece(..), write)
-
--- | A single Peer, denoted by a IP address and port
-data Peer = Peer String Integer
-          deriving (Eq)
-
-instance Show Peer where
-    show (Peer ip p) = concatMap id ["Peer < ", ip, " ", show p, " >"]
+import           FuncTorrent.Core (Block(..), Peer(..), PeerThread(..),
+                                   AvailabilityChannel, DataChannel)
 
 data PeerState = PeerState {
       handle :: Handle
@@ -80,32 +74,17 @@ data PeerMsg = KeepAliveMsg
              | PortMsg Integer
              deriving (Show)
 
-data PeerThread = PeerThread {
-    -- | Peer tracked by the thread
-    peer :: Peer
-
-    -- | Block request channel
-    , reader :: Chan Integer
-
-    -- | Block writer channel
-    , writer :: Chan Piece
-
-    -- | Report availability of blocks on this channel
-    , availibility :: Chan (PeerThread, Integer)
-    }
-
-
 -- Peer thread implementation
 
 -- | Spawns a new peer thread
 --
 -- Requests for fetching new blocks can be sent to the channel and those blocks
 -- will be eventually written to the writer channel.
-initPeerThread :: Peer -> Chan (PeerThread, Integer) -> Chan Piece -> IO (ThreadId, PeerThread)
-initPeerThread p blockChan writerChan = do
+initPeerThread :: Peer -> AvailabilityChannel -> DataChannel -> IO (ThreadId, PeerThread)
+initPeerThread p availChan dataChan = do
     putStrLn $ "Spawning peer thread for " ++ show p
-    blocks <- newChan :: IO (Chan Integer)
-    let pt = PeerThread p blocks writerChan blockChan
+    requestChan <- newChan :: IO (Chan Integer)
+    let pt = PeerThread p availChan requestChan dataChan
     -- bracket :: IO a -> (a -> IO b) -> (a -> IO c) -> IO c
     tid <- forkIO $ bracket (initialize pt) cleanup action
     return (tid, pt)
@@ -128,7 +107,7 @@ initialize pt = putStrLn "Initializing peer" >> return pt
 -- eventually schedules the pieces to be downloaded depending on various
 -- prioritization techniques.
 loop :: PeerThread -> IO ()
-loop pt = do
+loop pt@(PeerThread _ availabilityChan _ _) = do
     -- Assume a torrent with 32 pieces and the remote peer has a few of them.
     -- Report those to the control thread.
     g <- newStdGen
@@ -141,13 +120,13 @@ loop pt = do
     rmduplicates = map head . group . sort
 
     report :: Integer -> IO ()
-    report block = writeChan (availibility pt) (pt, block)
+    report block = writeChan availabilityChan (pt, block)
 
 -- Drains the block request channel and writes contents to writer channel.
 downloader :: PeerThread -> IO ()
-downloader pt = do
+downloader (PeerThread _ _ requestChan dataChan) = do
     putStrLn "Draining reader"
-    requests <- getChanContents $ reader pt
+    requests <- getChanContents requestChan
     mapM_ download requests
   where
     download :: Integer -> IO ()
@@ -156,7 +135,7 @@ downloader pt = do
         -- | Download a piece and write to writer channel
         putStrLn $ "Download block " ++ show x
         threadDelay 1000000
-        write (writer pt) $ Piece x "hello world"
+        writeChan dataChan $ Block x "hello world"
 
 -- [todo] - Close the channel on shutdown.
 --
@@ -165,7 +144,7 @@ downloader pt = do
 --
 -- | Called by bracket before the writer is shutdown
 cleanup :: PeerThread -> IO ()
-cleanup pt = putStrLn $ "Clean up peer thread for " ++ show (peer pt)
+cleanup (PeerThread peer _ _ _) = putStrLn $ "Clean up peer thread for " ++ show peer
 
 -- Protocol implementation
 
