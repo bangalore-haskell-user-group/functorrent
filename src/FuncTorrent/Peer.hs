@@ -40,7 +40,7 @@ import           Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
 import           Data.Binary.Put (putWord32be, putWord16be, putWord8)
 import           Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
 import           Data.ByteString.Lazy (fromStrict, fromChunks)
-import           Data.List (sort, group)
+import           Data.List (nub)
 import           Network (connectTo, PortID(..))
 import           System.IO
 import           System.Random (newStdGen, randomRs)
@@ -111,14 +111,11 @@ loop pt@(PeerThread _ availabilityChan _ _) = do
     -- Assume a torrent with 32 pieces and the remote peer has a few of them.
     -- Report those to the control thread.
     g <- newStdGen
-    let available = rmduplicates $ take 4 (randomRs (0, 31) g) :: [Integer]
+    let available = nub $ take 4 (randomRs (0, 31) g) :: [Integer]
 
     mapM_ report available
 
   where
-    rmduplicates :: Ord a => [a] -> [a]
-    rmduplicates = map head . group . sort
-
     report :: Integer -> IO ()
     report block = writeChan availabilityChan (pt, block)
 
