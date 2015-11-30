@@ -1,45 +1,65 @@
 {-# LANGUAGE OverloadedStrings #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      : FuncTorrent.Peer
+--
+-- Module to handle operations with one peer.
+--
+-- Peer talks peer protocol with one remote peer and reports the availability of
+-- blocks to the control thread via `availability` channel. Control thread can
+-- schedule block downloads taking into consideration the state of all active
+-- peers. Requests to fetch blocks arrive via the `reader` channel, and
+-- retrieved blocks are written to `writer` channel. This module is stateless
+-- and is perfectly safe to be killed anytime. The only requirement is to close
+-- inbound channels, such that control threads cannot request for more downloads
+-- after its shutdown.
+--
+-----------------------------------------------------------------------------
 module FuncTorrent.Peer
-    (Peer(..),
-     PeerState(..),
-     handShake,
-     msgLoop
+    (
+        Peer(..),
+        PeerMsg(..),
+        PeerState(..),
+        PeerThread(..),
+        PieceState(..),
+
+        initPeerThread,
+
+        -- Testing
+        handShake,
     ) where
 
 import Prelude hiding (lookup, concat, replicate, splitAt)
 
-import Control.Applicative (liftA3)
-import Control.Monad (replicateM, liftM, forever)
-import Data.Binary (Binary(..), decode)
-import Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
-import Data.Binary.Put (putWord32be, putWord16be, putWord8)
-import Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
-import Data.ByteString.Lazy (fromStrict, fromChunks)
-import Data.Functor ((<$>)) -- This will cause a warning in 7.10.
-import Network (connectTo, PortID(..))
-import System.IO
+import           Control.Applicative (liftA3)
+import           Control.Concurrent
+import           Control.Exception.Base (bracket)
+import           Control.Monad (replicateM, liftM)
+import           Data.Binary (Binary(..), decode)
+import           Data.Binary.Get (getWord32be, getWord16be, getWord8, runGet)
+import           Data.Binary.Put (putWord32be, putWord16be, putWord8)
+import           Data.ByteString (ByteString, pack, unpack, concat, hGet, hPut, singleton)
+import           Data.ByteString.Lazy (fromStrict, fromChunks)
+import           Data.List (nub)
+import           Network (connectTo, PortID(..))
+import           System.IO
+import           System.Random (newStdGen, randomRs)
 import qualified Data.ByteString.Char8 as BC (replicate, pack)
 
-type ID = String
-type IP = String
-type Port = Integer
+import           FuncTorrent.Core (Block(..), Peer(..), PeerThread(..),
+                                   AvailabilityChannel, DataChannel)
 
 data PeerState = PeerState {
       handle :: Handle
     , amChoking :: Bool
     , amInterested :: Bool
     , peerChoking :: Bool
-    , peerInterested :: Bool
-    }
+    , peerInterested :: Bool}
 
 data PieceState = Pending
                 | InProgress
                 | Have
                 deriving (Show)
-
--- | Peer is a PeerID, IP address, port tuple
-data Peer = Peer ID IP Port
-            deriving (Show, Eq)
 
 data PeerMsg = KeepAliveMsg
              | ChokeMsg
@@ -51,8 +71,79 @@ data PeerMsg = KeepAliveMsg
              | RequestMsg Integer Integer Integer
              | PieceMsg Integer Integer ByteString
              | CancelMsg Integer Integer Integer
-             | PortMsg Port
+             | PortMsg Integer
              deriving (Show)
+
+-- Peer thread implementation
+
+-- | Spawns a new peer thread
+--
+-- Requests for fetching new blocks can be sent to the channel and those blocks
+-- will be eventually written to the writer channel.
+initPeerThread :: Peer -> AvailabilityChannel -> DataChannel -> IO (ThreadId, PeerThread)
+initPeerThread p availChan dataChan = do
+    putStrLn $ "Spawning peer thread for " ++ show p
+    requestChan <- newChan :: IO (Chan Integer)
+    let pt = PeerThread p availChan requestChan dataChan
+    -- bracket :: IO a -> (a -> IO b) -> (a -> IO c) -> IO c
+    tid <- forkIO $ bracket (initialize pt) cleanup action
+    return (tid, pt)
+  where
+      -- | Spawns two threads to talk peer protocol and download requested blocks
+      action :: PeerThread -> IO ()
+      action pt = do
+          _ <- forkIO $ loop pt
+          _ <- forkIO $ downloader pt
+          return ()
+
+-- |Initialize module. Resources allocated here must be cleaned up in cleanup
+initialize :: PeerThread -> IO PeerThread
+initialize pt = putStrLn "Initializing peer" >> return pt
+
+-- [todo] - Implement the peer protocol here
+-- | Talks peer protocol to one peer
+--
+-- Reports the list of available pieces back to the control thread, which
+-- eventually schedules the pieces to be downloaded depending on various
+-- prioritization techniques.
+loop :: PeerThread -> IO ()
+loop pt@(PeerThread _ availabilityChan _ _) = do
+    -- Assume a torrent with 32 pieces and the remote peer has a few of them.
+    -- Report those to the control thread.
+    g <- newStdGen
+    let available = nub $ take 4 (randomRs (0, 31) g) :: [Integer]
+
+    mapM_ report available
+
+  where
+    report :: Integer -> IO ()
+    report block = writeChan availabilityChan (pt, block)
+
+-- Drains the block request channel and writes contents to writer channel.
+downloader :: PeerThread -> IO ()
+downloader (PeerThread _ _ requestChan dataChan) = do
+    putStrLn "Draining reader"
+    requests <- getChanContents requestChan
+    mapM_ download requests
+  where
+    download :: Integer -> IO ()
+    download x = do
+        -- [todo] - Replace with real download implementation
+        -- | Download a piece and write to writer channel
+        putStrLn $ "Download block " ++ show x
+        threadDelay 1000000
+        writeChan dataChan $ Block x "hello world"
+
+-- [todo] - Close the channel on shutdown.
+--
+-- The writer might be down and the channel will keep accepting more data,
+-- leading to ugly hard to track down bugs.
+--
+-- | Called by bracket before the writer is shutdown
+cleanup :: PeerThread -> IO ()
+cleanup (PeerThread peer _ _ _) = putStrLn $ "Clean up peer thread for " ++ show peer
+
+-- Protocol implementation
 
 genHandShakeMsg :: ByteString -> String -> ByteString
 genHandShakeMsg infoHash peer_id = concat [pstrlen, pstr, reserved, infoHash, peerID]
@@ -62,7 +153,7 @@ genHandShakeMsg infoHash peer_id = concat [pstrlen, pstr, reserved, infoHash, pe
         peerID = BC.pack peer_id
 
 handShake :: Peer -> ByteString -> String -> IO Handle
-handShake (Peer _ ip port) infoHash peerid = do
+handShake (Peer ip port) infoHash peerid = do
   let hs = genHandShakeMsg infoHash peerid
   h <- connectTo ip (PortNumber (fromIntegral port))
   hSetBuffering h LineBuffering
@@ -144,11 +235,3 @@ getMsg h = do
 
 bsToInt :: ByteString -> Int
 bsToInt x = fromIntegral (runGet getWord32be (fromChunks (return x)))
-
--- loop1 :: shake hands with all peers, find out the pieces they have, form PieceData.
--- recvMsg :: Peer -> Handle -> Msg
-
-msgLoop :: Handle -> IO ()
-msgLoop h = forever $ do
-  msg <- getMsg h
-  putStrLn $ "got a " ++ show msg

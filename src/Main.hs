@@ -12,7 +12,6 @@ import Control.Concurrent
 import Control.Monad (liftM)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (readFile)
-import Data.IORef
 import System.Directory (doesFileExist)
 import System.Environment (getArgs)
 import System.Posix.Signals (installHandler, Handler(Catch), sigINT, sigTERM)
@@ -20,8 +19,7 @@ import System.Posix.Signals (installHandler, Handler(Catch), sigINT, sigTERM)
 import FuncTorrent.Bencode (decode)
 import FuncTorrent.Logger (Log, initLogger, logMessage, logStop)
 import FuncTorrent.Metainfo (Metainfo(..), mkMetaInfo)
-import FuncTorrent.ControlThread
-import FuncTorrent.ServerThread
+import FuncTorrent.ControlThread (initControlThread)
 
 peerId :: String
 peerId = "-HS0001-*-*-20150215"
@@ -67,16 +65,10 @@ startTorrentConc _ m = do
   _ <- installHandler sigTERM (Catch $ putMVar interrupt sigTERM) Nothing
 
   -- Fork Control-Thread(s)
-  (ct,_) <- initControlThread m
-
-  -- Fork Server-Thread
-  (st,_) <- initServerThread [(m,ct)]
+  (ctid, _ct) <- initControlThread m
 
   -- Wait For user-interrupt
   _ <- takeMVar interrupt
 
   -- Exit gracefully
-  putMVar (serverTAction st) FuncTorrent.ServerThread.Stop
-  writeIORef (controlTAction ct) FuncTorrent.ControlThread.Stop
-  yield
-  threadDelay $ 4*1000*1000
+  killThread ctid

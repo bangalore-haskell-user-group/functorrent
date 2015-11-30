@@ -1,0 +1,28 @@
+* Concurrency model, v1
+
+This is a channel based approach for managing concurrency in Functorrent.
+
+The rational is that keeping state in MVars and polling for them in a loop with
+a sleep feels very counter intuitive.
+
+A channel based implementation is very similar to producer consumer model,
+message passing or Erlang's actor model.
+
+Channels are typed and can be drained in a blocking manner by a worker thread
+with only a few lines of code. (See [[https://github.com/bangalore-haskell-user-group/functorrent/blob/concurrency/src/FuncTorrent/Writer.hs][functorrent/Writer.hs]]) A `control thread`
+(CT) is spawned per torrent file. CT spawns a writer thread (WT) per file and a
+peer thread (PT) per peer. Peers report available blocks to control thread via
+the `availability` channel. Control thread can schedule block downloads taking
+into consideration the state of all active peers. We must be able to do some
+smart scheduling here, like fetching a rare piece first. Requests to fetch
+blocks arrive peer threads via the `reader` channel, and a download thread
+drains this channel and downloads a block at a time. Retrieved blocks are
+written to `writer` channel. Writer drains it to disk.
+
+A key advantage of the design is that a lot of the modules become stateless and
+safe to be killed at any time. Peer thread is an example. It gets data from a
+channel, writes data to another channel. A PT crash should be perfectly fine.
+
+A known issue is the inability to close channels at the moment. If the consumer
+dies, the producer ideally shouldn't be pushing more work in the same channel.
+This might lead to silent issues.

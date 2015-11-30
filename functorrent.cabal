@@ -18,16 +18,12 @@ cabal-version:       >=1.18
 library
   exposed-modules:     FuncTorrent
                        FuncTorrent.Bencode,
+                       FuncTorrent.ControlThread,
                        FuncTorrent.Logger,
                        FuncTorrent.Metainfo,
-                       FuncTorrent.Network
                        FuncTorrent.Peer,
-                       FuncTorrent.Tracker
-                       FuncTorrent.ControlThread
-                       FuncTorrent.PeerThread
-                       FuncTorrent.PeerThreadMain
-                       FuncTorrent.PeerThreadData
-                       FuncTorrent.ServerThread
+                       FuncTorrent.Tracker,
+                       FuncTorrent.Writer
 
   other-modules:       FuncTorrent.Utils
   other-extensions:    OverloadedStrings, CPP
@@ -46,6 +42,7 @@ library
                        network-uri,
                        parsec,
                        QuickCheck,
+                       random,
                        tasty,
                        tasty-hunit,
                        transformers,
@@ -69,6 +66,7 @@ executable functorrent
                        network,
                        network-uri,
                        parsec,
+                       random,
                        transformers,
                        unix
 
@@ -85,35 +83,9 @@ test-suite functorrent-test
                      directory,
                      doctest,
                      QuickCheck,
+                     random,
                      tasty,
                      tasty-hunit,
                      QuickCheck,
                      tasty-quickcheck,
                      test-framework-quickcheck2
-
-test-suite control-thread-tests
-  type:              exitcode-stdio-1.0
-  default-language:  Haskell2010
-  hs-source-dirs:    test,src
-  main-is:           ControlThreadTestsMain.hs
-  other-modules:     PeerThreadMock
-                     ControlThreadTests
-                     FuncTorrent.ControlThread
-  ghc-options:       -Wall
-  other-extensions:  CPP
-  cpp-options:       -DPEER_THREAD_MOCKED
-  build-depends:     base,
-                     base16-bytestring,
-                     binary,
-                     bytestring,
-                     containers,
-                     cryptohash,
-                     directory,
-                     HTTP,
-                     network,
-                     network-uri,
-                     parsec,
-                     QuickCheck,
-                     tasty,
-                     tasty-hunit,
-                     functorrent

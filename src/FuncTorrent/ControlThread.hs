@@ -1,42 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module FuncTorrent.ControlThread where
-
-import Control.Concurrent
-import Control.Monad hiding (forM, forM_, mapM, mapM_, msum, sequence, sequence_)
-import Data.IORef
-import GHC.Conc
-
-import FuncTorrent.Bencode (decode)
-import FuncTorrent.Metainfo (Metainfo(..))
-import FuncTorrent.Tracker (TrackerResponse(..), tracker, mkTrackerResponse, peers)
-
-import FuncTorrent.Peer (Peer(..))
-import FuncTorrent.PeerThread
-import FuncTorrent.PeerThreadData
-
-data ControlThread = ControlThread
-    { metaInfo         :: Metainfo
-    , trackerResponses :: [TrackerResponse]
-    , peerList         :: [Peer]
-    , peerThreads      :: [(PeerThread, ThreadId)]
-    , controlTStatus   :: IORef ControlThreadStatus
-    , controlTAction   :: IORef ControlThreadAction
-    }
-
-data ControlThreadStatus =
-        Stopped
-    |   Downloading
-    |   Seeding
-  deriving (Eq, Show)
-
-data ControlThreadAction =
-        Download
-    |   Pause
-    |   Seed
-    |   Stop
-  deriving (Eq, Show)
-
 -- Description
 -- ControlThread handles all operations for a single torrent
 -- It is responsible for
@@ -51,109 +14,114 @@ data ControlThreadAction =
 -- 1. Initialization.
 -- 2. downloading/seeding.
 -- 3. Stopping download/seed.
+
+module FuncTorrent.ControlThread where
+
+import Control.Concurrent
+import Control.Exception.Base (bracket)
+import Control.Monad (void, unless)
+import Data.Either (rights)
+import Data.Foldable (foldlM)
+import Data.Map.Lazy (Map, fromList)
+
+import FuncTorrent.Core (AvailabilityChannel, DataChannel)
+import FuncTorrent.Metainfo (Metainfo(..))
+import FuncTorrent.Peer (Peer(..), PeerThread(..), initPeerThread)
+import FuncTorrent.Tracker (Tracker(..), tracker)
+import FuncTorrent.Writer (initWriterThread)
+
+data ControlThread = ControlThread {
+     -- | Static information about the torrent from the .torrent file
+     metaInfo    :: Metainfo
+
+     -- | List of tracker responses
+    , trackers    :: [Tracker]
+
+     -- | Active peer threads managed by the control thread
+    , peerThreads :: [(ThreadId, PeerThread)]
+
+     -- | Keeps track of the list of peers having a block
+    , blocks :: Map Integer [PeerThread]
+
+     -- | Peers report availability of a block on this channel
+    , blockChan :: AvailabilityChannel
+
+     -- [TODO] - A writer must be spawned per file, change to `Map File Chan`
+    , writerChan :: DataChannel}
+
+initControlThread :: Metainfo -> IO (ThreadId, ControlThread)
+initControlThread m = do
+    -- [todo] - This is not right. A control thread should spawn a writer thread
+    -- per file and shut it down once done. Need a mechanism to map writers to
+    -- files to peer thread workers.
+    (_threadID, writerChan') <- initWriterThread "/tmp/functorrent.txt" 2048
+    blockChan' <- newChan :: IO AvailabilityChannel
+    let blocks' = fromList [] :: Map Integer [PeerThread]
+    let ct = ControlThread m [] [] blocks' blockChan' writerChan'
+    -- bracket :: IO a -> (a -> IO b) -> (a -> IO c) -> IO c
+    tid <- forkIO $ bracket (initialize ct) cleanup loop
+    return (tid, ct)
+
+initialize :: ControlThread -> IO ControlThread
+initialize ct = do
+    trackers' <- mapM (tracker mInfo) (announceList mInfo)
+    return $ ct {trackers = rights trackers'}
+  where
+    mInfo = metaInfo ct
+
+-- | Control thread loop. This is where all the action happens.
 --
-controlThreadMain :: ControlThread -> IO ()
-controlThreadMain ct =
-    doExit =<< (mainLoop <=< doInitialization) ct
+-- CT starts with 4 random peers. CT listens for new blocks from `blockChan` and
+-- schedules it to be downloaded. This logic should get a lot smarter to speed
+-- up things.
 
-doInitialization :: ControlThread -> IO ControlThread
-doInitialization ct =
-  getTrackerResponse ct >>= \x ->
-      let peerInit = take 4 (peerList x)
-      in foldM forkPeerThread x peerInit
+loop :: ControlThread -> IO ()
+loop ct = do
+    putStrLn "Do control thread work"
 
-mainLoop :: ControlThread -> IO ControlThread
-mainLoop ct =
-  -- At this stage rank peers and decide if we want to disconnect
-  -- And create more peers/ use incoming connections.
-  filterBadPeers ct >>=
+    -- Spawn block scheduler
+    _ <- forkIO $ listener ct
 
-  pieceManagement >>=
+    -- Spawn a bunch of peer threads
+    let fewPeers = take 4 (concatMap peers $ trackers ct)
+    --  [FIX] - Add this list to state so they can be cleaned up on shutdown
+    mapM_ (forkPeerThread ct) fewPeers
 
-  -- Loop Here and check if we need to quit/exit
-  -- Add delay here before polling PeerThreads again
-  checkAction
+-- Drains the availability request channel and schedules them to be downloaded
+-- immediately with the same peer. This could get a lot smarter.
+listener :: ControlThread -> IO ()
+listener ct = do
+    putStrLn "Draining block availability channel"
+    blocks' <- getChanContents $ blockChan ct
+    -- List of completed blocks, assume 32 pieces in the torrent
+    -- [FIX] - Replace with real number of pieces in the torrent
+    let done = map (const False) [0..31 :: Integer] :: [Bool]
+    void $ foldlM schedule done blocks'
+  where
+    -- | Schedule a block to be downloaded on an available peer
+    schedule :: [Bool] -> (PeerThread, Integer) -> IO [Bool]
+    schedule done (PeerThread peer _ requestChan _, index) = do
+        putStrLn $ concat ["Found block ", show index, " with ", show peer]
+        unless (done !! fromInteger index) $ writeChan requestChan index
+        return $ replaceAt done True index
 
- where
-   checkAction :: ControlThread -> IO ControlThread
-   checkAction ct1 = do
-     putStrLn "Check control thread action"
-     -- TODO: This will cause a 4s delay b/w a ^C and the app going down
-     threadDelay $ 4*1000*1000
-     action <- readIORef $ controlTAction ct1
-     case action of
-       FuncTorrent.ControlThread.Stop -> return ct1
-       _ -> mainLoop ct1
+    -- | Replace the nth item with key
+    replaceAt :: [a] -> a -> Integer -> [a]
+    replaceAt xs key n = pick ++ [key] ++ rest
+      where (pick, _replace:rest) = splitAt (fromInteger n) xs
 
-doExit :: ControlThread -> IO ()
-doExit ct = do
-  putStrLn "Doing control-thread exit"
-  let peerTs = peerThreads ct
-  -- let the peer threads stop themselves
-  mapM_ (setPeerThreadAction FuncTorrent.PeerThreadData.Stop . fst) peerTs
+-- | Called by bracket before the control thread is shutdown
+cleanup :: ControlThread -> IO ()
+cleanup ct = do
+    putStrLn "Exit control thread killing all peer threads"
 
-  -- Let the threads run for a while
-  -- We may add delay also if required
-  yield
-
-  -- remove all the threads which stopped successfully
-  ct1 <- clearFinishedThreads ct
-
-  -- If there are still threads waiting/blocked then either wait
-  -- if they are blocked due to disk write, then wait and retry
-  -- if thread not responding then kill the thread
-
-  unless (null (peerThreads ct1)) $ doExit ct1
-
- where
-     clearFinishedThreads :: ControlThread -> IO ControlThread
-     clearFinishedThreads ct1 = do
-       remainingThreads <- filterM isRunning (peerThreads ct1)
-       return (ct1 {peerThreads = remainingThreads})
-      where
-          isRunning (_,tid) =
-              threadStatus tid >>= (\x -> return $ ThreadFinished /= x)
-
-getTrackerResponse :: ControlThread -> IO ControlThread
-getTrackerResponse ct = do
-  response <- tracker (metaInfo ct) "-HS0001-*-*-20150215"
-
-  -- TODO: Write to ~/.functorrent/caches
-  -- writeFile (name (info m) ++ ".cache") response
-
-  case decode response of
-    Right trackerInfo ->
-        case mkTrackerResponse trackerInfo of
-          Right trackerResp ->
-            let newTrackerResponses = trackerResp : trackerResponses ct
-                newPeerList = peerList ct ++ peers trackerResp
-            in return ct {trackerResponses = newTrackerResponses,
-                          peerList = newPeerList}
-          Left _ -> putStrLn "mkTracker error" >> return ct
-    Left _ -> putStrLn "tracker resp decode error" >> return ct
+    -- [todo] - Kill writer thread here
+    -- Kill all the peer threads. Synchronous op, no need to wait.
+    mapM_ (killThread . fst) $ peerThreads ct
 
 -- Forks a peer-thread and add it to the peerThreads list
 forkPeerThread :: ControlThread -> Peer -> IO ControlThread
 forkPeerThread ct p = do
-  pt <- initPeerThread p
-  let newPeerThreads = pt : peerThreads ct  -- Append pt to peerThreads
-  return ct { peerThreads = newPeerThreads}
-
--- Piece Management Stuff
-pieceManagement :: ControlThread -> IO ControlThread
-pieceManagement ct = do
-  putStrLn "Manage pieces"
-  return ct
-
-filterBadPeers :: ControlThread -> IO ControlThread
-filterBadPeers ct = do
-  putStrLn "Filter bad peers"
-  return ct
-
-initControlThread :: Metainfo -> IO (ControlThread, ThreadId)
-initControlThread m = do
-  st <- newIORef Stopped
-  a  <- newIORef Download
-  let ct = ControlThread m [] [] [] st a
-  tid <- forkIO $ controlThreadMain ct
-  return (ct, tid)
+    pt <- initPeerThread p (blockChan ct) (writerChan ct)
+    let newPeerThreads = pt : peerThreads ct  -- Append pt to peerThreads
+    return ct { peerThreads = newPeerThreads}
