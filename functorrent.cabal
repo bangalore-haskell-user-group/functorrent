@@ -43,8 +43,6 @@ library
                        parsec,
                        QuickCheck,
                        random,
-                       tasty,
-                       tasty-hunit,
                        transformers,
                        unix
 
